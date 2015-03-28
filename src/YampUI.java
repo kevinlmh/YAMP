@@ -2,14 +2,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JSlider;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 
 public class YampUI extends JFrame {
@@ -30,23 +27,40 @@ public class YampUI extends JFrame {
 	private JTextField txtSkip;
 	private JSlider sldVolume;
 	private JSlider sldTime;
+        
+        //*********
+        //Swing Playlist Components
+        private JList list;
+        private DefaultListModel model;
+        private JScrollPane pane;
+        private JButton btnAppend;
+        private JButton btnRemove;
+        //private JButton btnPlaylist1;
+        //private JButton btnPlaylist2;
+        //private JTextField txtListPos;
+        //private JButton btnGoToPos;
+        private YampPlaylist2 yampsPlaylist;
+        //*********
+        
 	// Yamp driver
 	private YampDriver driver;
 	// User selected file
 	private File selectedFile;
 	// Total time of current song
 	private int totalTime;
-	
+        
 	/**
 	 * Constructor
 	 * 
 	 * @param title The title of the window
 	 * @param driver An instance of the YampDriver class
+         * @param list An instance of the YampPlaylist2 class
 	 */
-	public YampUI(String title, YampDriver driver) {
+	public YampUI(String title, YampDriver driver, YampPlaylist2 list) {
 		super(title);
 		initUI();
 		this.driver = driver;
+                this.yampsPlaylist=list;
 	}
 	
 	public void updateTime(int seconds) {
@@ -69,7 +83,7 @@ public class YampUI extends JFrame {
 	 */
 	public void initUI() {
 		//setTitle("Yamp");
-        setSize(460, 300);
+        setSize(460, 460);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         // optional: this line set the window to the center of screen
         setLocationRelativeTo(null);
@@ -110,6 +124,7 @@ public class YampUI extends JFrame {
         });
         add(btnOpen);
 
+        
         // Setup Play button
         btnPlay = new JButton("Play");
         btnPlay.setBounds(100, 100, 80, 25);
@@ -209,6 +224,63 @@ public class YampUI extends JFrame {
         add(btnSkip);
         
         
-	}
+        /**
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         */
 
+        
+        // Setup Playlist
+        model = new DefaultListModel();
+        list = new JList(model);
+        list.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()&&!list.isSelectionEmpty()&&list.getMaxSelectionIndex()==list.getMinSelectionIndex()) {
+                    selectedFile=yampsPlaylist.playlist.get(list.getSelectedIndex());
+                    txtFilePath.setText(selectedFile.getName());
+                    driver.setCurrentSong(selectedFile.getPath());
+                }
+            }
+        });
+        //list.setBounds(50, 250, 360, 150);
+        pane = new JScrollPane(list);
+        pane.setBounds(50, 250, 360, 150);
+        add(pane);
+        
+        // Setup Append Button
+        btnAppend = new JButton("+");
+        btnAppend.setBounds(50, 405, 25, 25);
+        btnAppend.addActionListener(new ActionListener() {
+          public void actionPerformed(ActionEvent e) {
+            // when open button is clicked open a file chooser dialog
+        	int returnVal = fc.showOpenDialog(YampUI.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                selectedFile = fc.getSelectedFile();
+                //This is where a real application would open the file.
+                System.out.println("Opening: " + selectedFile.getPath() + ".");
+                txtFilePath.setText(selectedFile.getName());
+                //driver.setCurrentSong(selectedFile.getPath());
+                yampsPlaylist.appendElement(selectedFile);
+                model.addElement(txtFilePath.getText());
+            } else {
+                System.out.println("Open command cancelled by user.");
+                txtFilePath.setText("No file selected");
+            }
+           }
+          });
+        add(btnAppend);
+        
+        //Setup Remove Button
+        btnRemove = new JButton("-");
+        btnRemove.setBounds(80, 405, 25, 25);
+        add(btnRemove);
+	}
 }
