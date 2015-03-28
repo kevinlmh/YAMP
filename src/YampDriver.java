@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import javazoom.jlgui.basicplayer.BasicController;
@@ -17,11 +18,17 @@ public class YampDriver implements BasicPlayerListener {
 	
 	// Path of current song that is opened
 	private String currentSongPath;
+        
+        //******
+        //****** PLAYLIST
+        private YampPlaylist2 testList = null;
+        //******
+        //******
 	
 	/** 
 	 * Constructor. 
 	 */
-	public YampDriver() {
+	public YampDriver() throws IOException {
 		// Instantiate BasicPlayer.
 		player = new BasicPlayer();
 		// BasicPlayer is a BasicController.
@@ -31,15 +38,26 @@ public class YampDriver implements BasicPlayerListener {
 		// events such as : opened(...), progress(...), stateUpdated(...)
 		player.addBasicPlayerListener(this);
 		
-		ui = new YampUI("Yet Another Music Player", YampDriver.this);
+                //********
+                //******** INIT PLAYLIST
+                testList = new YampPlaylist2();
+                testList.loadFromM3U();
+                //********
+                //********
+                
+                
+		ui = new YampUI("Yet Another Music Player", YampDriver.this, testList);
 		ui.setVisible(true);
+                
+                
 	}
 	
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		YampDriver test = new YampDriver();
 		//test.play("/home/kevin/test.mp3");
 		//test.play(args[0]);
+                
 	}
 	
 	public void play(String filename) {
@@ -127,6 +145,7 @@ public class YampDriver implements BasicPlayerListener {
 		// Pay attention to properties. It's useful to get duration,
 		// bit rate, channels, even tag such as ID3v2.
 		System.out.println("opened : " + properties.toString());
+                System.out.println("[Title]: " + properties.get("title"));
 		int seconds = (int)((Long)(properties.get("duration"))/1000000);
 		ui.setTotalTime(seconds);
 	}
