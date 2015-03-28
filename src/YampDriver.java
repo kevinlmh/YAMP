@@ -45,7 +45,7 @@ public class YampDriver implements BasicPlayerListener {
                 //********
                 //********
                 
-                
+                //UI Constructor accepts driver's playlist as parameter as well
 		ui = new YampUI("Yet Another Music Player", YampDriver.this, testList);
 		ui.setVisible(true);
                 
