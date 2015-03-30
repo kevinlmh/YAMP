@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.InputStream;
 import java.util.Map;
 
 import javazoom.jlgui.basicplayer.BasicController;
@@ -14,9 +15,15 @@ public class YampDriver implements BasicPlayerListener {
 	private BasicController control = null;
 	// UI module
 	private YampUI ui = null;
+	// Info Window
+	private YampInfoWindow infowindow;
 	
 	// Path of current song that is opened
 	private String currentSongPath;
+	// Total number of bytes
+	private int totalBytes;
+	// Current byte
+	private int currentByte;
 	
 	/** 
 	 * Constructor. 
@@ -35,20 +42,24 @@ public class YampDriver implements BasicPlayerListener {
 		ui.setVisible(true);
 	}
 	
-	
 	public static void main(String[] args) {
 		YampDriver test = new YampDriver();
-		//test.play("/home/kevin/test.mp3");
-		//test.play(args[0]);
 	}
 	
-	public void play(String filename) {
+	public void open(String filepath) {
+		try {
+			control.open(new File(filepath));
+		} catch (BasicPlayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		currentSongPath = filepath;
+
+	}
+	
+	public void play() {
 		try { 
-			// Open file, or URL or Stream (shoutcast, icecast) to play.
-			control.open(new File(filename));
-
 			control.play();
-
 			// Set Volume (0 to 1.0).
 			control.setGain(0.85);
 			// Set Pan (-1.0 to 1.0).
@@ -80,29 +91,42 @@ public class YampDriver implements BasicPlayerListener {
 		try {
 			control.resume();
 		} catch (BasicPlayerException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	public void skip(long bytes) {
+	public void skip(int bytes) {
 		try {
 			control.seek(bytes);
 		} catch (BasicPlayerException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	public void setCurrentSong(String filepath) {
-		currentSongPath = filepath;
+	public void jump(int percentage) {
+		int position = (int)(totalBytes * (percentage / 100.0)) - currentByte;
+		try {
+			control.seek(position);
+		} catch (BasicPlayerException e) {
+			e.printStackTrace();
+		}
 	}
+	
+	public void displayInfo() {
+		if (currentSongPath != null) {
+			infowindow = new YampInfoWindow(currentSongPath);
+			infowindow.setVisible(true);
+		} else {
+			System.out.println("File Info: No open file.");
+		}
+		
+	}
+	
 	
 	public void setVolume(int percentage) {
 		try {
 			control.setGain((double)percentage/100.0);
 		} catch (BasicPlayerException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -129,6 +153,8 @@ public class YampDriver implements BasicPlayerListener {
 		System.out.println("opened : " + properties.toString());
 		int seconds = (int)((Long)(properties.get("duration"))/1000000);
 		ui.setTotalTime(seconds);
+		totalBytes = (int)properties.get("mp3.length.bytes");
+		ui.setTotalBytes(totalBytes);
 	}
 
 	/**
@@ -154,8 +180,11 @@ public class YampDriver implements BasicPlayerListener {
 		// MP3SPI provides mp3.equalizer.
 //		System.out.println("progress : " + properties.toString());
 //		System.out.println("bytesread: " + bytesread + ", microseconds: " + microseconds);
+		currentByte = bytesread;
 		int seconds = (int) (microseconds / 1000000);
 		ui.updateTime(seconds);
+//		ui.updateTime(currentByte);
+		
 	}
 
 	/**

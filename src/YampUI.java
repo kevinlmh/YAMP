@@ -20,14 +20,14 @@ public class YampUI extends JFrame {
 	private JButton btnPause;
 	private JButton btnResume;
 	private JButton btnStop;
-	private JButton btnSkip;
+//	private JButton btnSkip;
 	private JLabel lblFilePath;
 	private JLabel lblVolume;
 	private JLabel lblTime;
 	private JLabel lblTotal;
 	private JFileChooser fc;
 	private JTextField txtFilePath;
-	private JTextField txtSkip;
+//	private JTextField txtSkip;
 	private JSlider sldVolume;
 	private JSlider sldTime;
 	// Yamp driver
@@ -36,6 +36,8 @@ public class YampUI extends JFrame {
 	private File selectedFile;
 	// Total time of current song
 	private int totalTime;
+	// Total number of bytes
+	private int totalBytes;
 	
 	/**
 	 * Constructor
@@ -61,6 +63,10 @@ public class YampUI extends JFrame {
 		int min = seconds/60;
 		int sec = seconds%60;
 		lblTotal.setText(Integer.toString(min) + ":" + Integer.toString(sec));
+	}
+	
+	public void setTotalBytes(int totalBytes) {
+		this.totalBytes = totalBytes;
 	}
 	
 
@@ -91,7 +97,7 @@ public class YampUI extends JFrame {
         
         // Setup Open button
         btnOpen = new JButton("Open");
-        btnOpen.setBounds(20, 100, 80, 25);
+        btnOpen.setBounds(20, 130, 80, 25);
         btnOpen.addActionListener(new ActionListener() {
           public void actionPerformed(ActionEvent e) {
             // when open button is clicked open a file chooser dialog
@@ -101,7 +107,7 @@ public class YampUI extends JFrame {
                 //This is where a real application would open the file.
                 System.out.println("Opening: " + selectedFile.getPath() + ".");
                 txtFilePath.setText(selectedFile.getName());
-                driver.setCurrentSong(selectedFile.getPath());
+                driver.open(selectedFile.getPath());
             } else {
                 System.out.println("Open command cancelled by user.");
                 txtFilePath.setText("No file selected");
@@ -112,18 +118,18 @@ public class YampUI extends JFrame {
 
         // Setup Play button
         btnPlay = new JButton("Play");
-        btnPlay.setBounds(100, 100, 80, 25);
+        btnPlay.setBounds(100, 130, 80, 25);
         btnPlay.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	// when play button is clicked play the current open song
-            	driver.play(selectedFile.getPath());
+            	driver.play();
             }
           });
         add(btnPlay);
 
         // Setup pause button
         btnPause = new JButton("Pause");
-        btnPause.setBounds(180, 100, 80, 25);
+        btnPause.setBounds(180, 130, 80, 25);
         btnPause.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	// when pause button is clicked pause the current open song
@@ -134,7 +140,7 @@ public class YampUI extends JFrame {
        
         // Setup resume button
         btnResume = new JButton("Resume");
-        btnResume.setBounds(260, 100, 100, 25);
+        btnResume.setBounds(260, 130, 100, 25);
         btnResume.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	// when stop button is clicked stop the current open song
@@ -145,7 +151,7 @@ public class YampUI extends JFrame {
         
         // Setup stop button
         btnStop = new JButton("Stop");
-        btnStop.setBounds(360, 100, 80, 25);
+        btnStop.setBounds(360, 130, 80, 25);
         btnStop.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	// when stop button is clicked stop the current open song
@@ -156,13 +162,13 @@ public class YampUI extends JFrame {
         
         // Setup volume label
         lblVolume = new JLabel("Volume level: 85");
-        lblVolume.setBounds(50, 130, 140, 25);
+        lblVolume.setBounds(50, 160, 140, 25);
         add(lblVolume);
         
         // Setup volume slider
         sldVolume = new JSlider();
         sldVolume = new JSlider(0, 100, 85);
-        sldVolume.setBounds(180, 130, 200, 25);
+        sldVolume.setBounds(180, 160, 200, 25);
         sldVolume.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent event) {
                 lblVolume.setText("Volume level: " + sldVolume.getValue());
@@ -173,40 +179,49 @@ public class YampUI extends JFrame {
 
         // Setup time label
         lblTime = new JLabel("00:00");
-        lblTime.setBounds(50, 160, 40, 25);
+        lblTime.setBounds(50, 80, 40, 25);
         add(lblTime);
         
         // Setup remaining time label
         lblTotal = new JLabel("??:??");
-        lblTotal.setBounds(380, 160, 40, 25);
+        lblTotal.setBounds(380, 80, 40, 25);
         add(lblTotal);
         
         // Setup time slider
         sldTime = new JSlider();
         sldTime = new JSlider(0, 100, 0);
-        sldTime.setBounds(50, 180, 360, 25);
+        sldTime.setBounds(50, 100, 360, 25);
         sldTime.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent event) {
-                
+//                driver.jump(sldTime.getValue());
             }
         });
         add(sldTime);
-
         
         // Setup text field
-        txtSkip = new JTextField(40);
-        txtSkip.setBounds(50, 210, 80, 25);
-        add(txtSkip);
+//        txtSkip = new JTextField(40);
+//        txtSkip.setBounds(50, 210, 80, 25);
+//        add(txtSkip);
+//        
+//        // Setup skip button
+//        btnSkip = new JButton("Skip");
+//        btnSkip.setBounds(140, 210, 80, 25);
+//        btnSkip.addActionListener(new ActionListener() {
+//            public void actionPerformed(ActionEvent e) {
+//            	driver.jump(Integer.parseInt(txtSkip.getText()));
+//            }
+//          });
+//        add(btnSkip);
         
-        // Setup skip button
-        btnSkip = new JButton("Skip");
-        btnSkip.setBounds(140, 210, 80, 25);
-        btnSkip.addActionListener(new ActionListener() {
+     // Setup Info button
+        btnStop = new JButton("File Info");
+        btnStop.setBounds(20, 200, 120, 25);
+        btnStop.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-            	driver.skip(Long.parseLong(txtSkip.getText()));
+            	driver.displayInfo();
             }
           });
-        add(btnSkip);
+        add(btnStop);
         
         
 	}
