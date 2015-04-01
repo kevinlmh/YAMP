@@ -5,10 +5,14 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
 import com.mpatric.mp3agic.ID3v2;
@@ -42,6 +46,17 @@ public class YampInfoWindow extends JFrame {
 	private JTextField txtAlbumArtist;
 	private JTextField txtEncoder;
 	private JTextField txtComment;
+	
+	/** 
+	 * Swing Playlist Components
+	 */
+	private JList list;
+	private DefaultListModel model;
+	private JScrollPane pane;
+	private JButton btnAppend;
+	private JButton btnRemove;
+	private YampPlaylist yampsPlaylist;
+
 
 	public YampInfoWindow(String filename) {
 		super("Song Info: " + filename);

@@ -24,6 +24,8 @@ public class YampDriver implements BasicPlayerListener {
 	private int totalBytes;
 	// Current byte
 	private int currentByte;
+	// Current player state
+	private int currentState;
 	
 	/** 
 	 * Constructor. 
@@ -33,6 +35,13 @@ public class YampDriver implements BasicPlayerListener {
 		player = new BasicPlayer();
 		// BasicPlayer is a BasicController.
 		control = (BasicController) player;	
+		try {
+			control.setGain(0.85);
+			control.setPan(0.0);
+		} catch (BasicPlayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		// Register BasicPlayerTest to BasicPlayerListener events.
 		// It means that this object will be notified on BasicPlayer
 		// events such as : opened(...), progress(...), stateUpdated(...)
@@ -60,10 +69,6 @@ public class YampDriver implements BasicPlayerListener {
 	public void play() {
 		try { 
 			control.play();
-			// Set Volume (0 to 1.0).
-			control.setGain(0.85);
-			// Set Pan (-1.0 to 1.0).
-			control.setPan(0.0);
 		} catch (BasicPlayerException e) {
 			e.printStackTrace();
 		}
@@ -112,6 +117,11 @@ public class YampDriver implements BasicPlayerListener {
 		}
 	}
 	
+	public void quit() {
+		stop();
+		System.exit(0);
+	}
+	
 	public void displayInfo() {
 		if (currentSongPath != null) {
 			infowindow = new YampInfoWindow(currentSongPath);
@@ -122,13 +132,16 @@ public class YampDriver implements BasicPlayerListener {
 		
 	}
 	
-	
 	public void setVolume(int percentage) {
 		try {
 			control.setGain((double)percentage/100.0);
 		} catch (BasicPlayerException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public int getState() {
+		return currentState;
 	}
 	
 	/* Implementation of functions in BasicPlayerListener interface */
@@ -197,6 +210,13 @@ public class YampDriver implements BasicPlayerListener {
 		// Notification of BasicPlayer states (opened, playing, end of media,
 		// ...)
 		System.out.println("stateUpdated : " + event.toString());
+		if (event.getCode() != BasicPlayerEvent.GAIN 	|
+			event.getCode() != BasicPlayerEvent.PAN 	|
+			event.getCode() != BasicPlayerEvent.OPENING | 
+			event.getCode() != BasicPlayerEvent.SEEKING | 
+			event.getCode() != BasicPlayerEvent.UNKNOWN) {
+			currentState = event.getCode();
+		}
 	}
 
 	/**
