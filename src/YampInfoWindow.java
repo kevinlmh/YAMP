@@ -46,16 +46,6 @@ public class YampInfoWindow extends JFrame {
 	private JTextField txtAlbumArtist;
 	private JTextField txtEncoder;
 	private JTextField txtComment;
-	
-	/** 
-	 * Swing Playlist Components
-	 */
-	private JList list;
-	private DefaultListModel model;
-	private JScrollPane pane;
-	private JButton btnAppend;
-	private JButton btnRemove;
-	private YampPlaylist yampsPlaylist;
 
 
 	public YampInfoWindow(String filename) {

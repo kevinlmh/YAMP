@@ -15,6 +15,8 @@ public class YampDriver implements BasicPlayerListener {
 	private BasicController control = null;
 	// UI module
 	private YampUI ui = null;
+	// Playlist
+	private YampPlaylist playlist = null;
 	// Info Window
 	private YampInfoWindow infowindow;
 	
@@ -46,8 +48,8 @@ public class YampDriver implements BasicPlayerListener {
 		// It means that this object will be notified on BasicPlayer
 		// events such as : opened(...), progress(...), stateUpdated(...)
 		player.addBasicPlayerListener(this);
-		
-		ui = new YampUI("Yet Another Music Player", YampDriver.this);
+		playlist = new YampPlaylist();
+		ui = new YampUI("Yet Another Music Player", YampDriver.this, playlist);
 		ui.setVisible(true);
 	}
 	

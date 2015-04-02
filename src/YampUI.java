@@ -16,10 +16,13 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JScrollPane;
 import javax.swing.JSlider;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.table.DefaultTableModel;
 
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.InvalidDataException;
@@ -30,35 +33,38 @@ import javazoom.jlgui.basicplayer.BasicPlayerEvent;
 
 
 public class YampUI extends JFrame {
-	
-	// Swing components declaration
-	private JButton btnPlay;
-	private JButton btnForward;
-	private JButton btnRewind;
-//	private JButton btnSkip;
-	private JLabel lblTitle;
-	private JLabel lblArtist;
-	private JLabel lblAlbum;
-	private JLabel lblVolume;
-	private JLabel lblTime;
-	private JLabel lblTotal;
-	private JLabel lblDisplay;
-	private JLabel lblCoverArt;
-	private JSlider sldVolume;
-	private JSlider sldTime;
-//	private JTextField txtSkip;
-	// File chooser
-	private JFileChooser fc;
-
+	// Cover art label size 
 	private final int COVER_SIZE = 120;
+	
 	// Yamp driver
 	private YampDriver driver;
+	// File chooser
+	private JFileChooser fc;
 	// User selected file
 	private File selectedFile;
+	// Yamp playlist
+	private YampPlaylist playlist;
 	// Total time of current song
 	private int totalTime;
 	// Total number of bytes
 	private int totalBytes;
+	
+	/* Swing components declaration */
+	private JButton btnPlay;
+	private JButton btnForward;
+	private JButton btnRewind;
+	private JButton btnStop;
+	private JButton btnMute;
+	private JLabel lblTitle;
+	private JLabel lblArtist;
+	private JLabel lblAlbum;
+	private JLabel lblVolume;
+//	private JLabel lblTime;
+//	private JLabel lblTotal;
+	private JLabel lblDisplay;
+	private JLabel lblCoverArt;
+	private JSlider sldVolume;
+	private JSlider sldTime;
 
 	/* Menu bar swing components */
 	private JMenuBar menuBar;
@@ -80,6 +86,13 @@ public class YampUI extends JFrame {
 	private JMenuItem mntmSavePlaylist;
 	private JMenuItem mntmLoadPlaylist;
 	
+	/* Playlist components */
+	private JTable table;
+	private DefaultTableModel tablemodel;
+	private JScrollPane scrollPane;
+	private JButton btnAppend;
+	private JButton btnRemove;
+	
 	
 	/**
 	 * Constructor
@@ -87,16 +100,17 @@ public class YampUI extends JFrame {
 	 * @param title The title of the window
 	 * @param driver An instance of the YampDriver class
 	 */
-	public YampUI(String title, YampDriver driver) {
+	public YampUI(String title, YampDriver driver, YampPlaylist playlist) {
 		super(title);
 		initUI();
 		this.driver = driver;
+		this.playlist = playlist;
 	}
 	
 	public void updateTime(int seconds) {
 		int min = seconds/60;
 		int sec = seconds%60;
-		lblTime.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
+//		lblTime.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
 		lblDisplay.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
 		sldTime.setValue(100*seconds/totalTime);
 	}
@@ -105,7 +119,7 @@ public class YampUI extends JFrame {
 		totalTime = seconds;
 		int min = seconds/60;
 		int sec = seconds%60;
-		lblTotal.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
+//		lblTotal.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
 	}
 	
 	public void setTotalBytes(int totalBytes) {
@@ -118,7 +132,7 @@ public class YampUI extends JFrame {
 	 */
 	public void initUI() {
 		//setTitle("Yamp");
-        setSize(600, 300);
+        setSize(600, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         // optional: this line set the window to the center of screen
         setLocationRelativeTo(null);
@@ -139,6 +153,7 @@ public class YampUI extends JFrame {
 		mntmOpen.addActionListener(new ActionListener() {
 	          public void actionPerformed(ActionEvent e) {
 	            // when open button is clicked open a file chooser dialog
+	        	fc.setMultiSelectionEnabled(false);
 	        	int returnVal = fc.showOpenDialog(YampUI.this);
 	            if (returnVal == JFileChooser.APPROVE_OPTION) {
 	                selectedFile = fc.getSelectedFile();
@@ -164,7 +179,6 @@ public class YampUI extends JFrame {
 						e1.printStackTrace();
 					}
 	                driver.open(selectedFile.getPath());
-//	                btnPlay.setText("Play");
 	                btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
 	            } else {
 	                System.out.println("Open command cancelled by user.");
@@ -199,7 +213,6 @@ public class YampUI extends JFrame {
 		mntmPlay.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	driver.play();
-//            	btnPlay.setText("Pause");
             	btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/pause.png"));
             	mntmPause.setText("Pause");
             }
@@ -211,13 +224,11 @@ public class YampUI extends JFrame {
             public void actionPerformed(ActionEvent e) {
             	if (driver.getState() == BasicPlayerEvent.PLAYING | driver.getState() == BasicPlayerEvent.RESUMED) {
             		driver.pause();
-//            		btnPlay.setText("Resume");
             		btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
             		mntmPause.setText("Resume");
             	}
             	if (driver.getState() == BasicPlayerEvent.PAUSED) {
             		driver.resume();
-//            		btnPlay.setText("Pause");
             		btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/pause.png"));
             		mntmPause.setText("Pause");
             	}
@@ -229,9 +240,9 @@ public class YampUI extends JFrame {
 		mntmStop.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	driver.stop();
-//            	btnPlay.setText("Play");
             	btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
             	mntmPause.setText("Pause");
+            	lblDisplay.setText("00:00");
             }
           });
 		mnControl.add(mntmStop);
@@ -263,44 +274,41 @@ public class YampUI extends JFrame {
         
 		// Setup title label
         lblTitle = new JLabel("Title: ");
-        lblTitle.setBounds(300, 40, 300, 25);
+        lblTitle.setBounds(140, 40, 450, 25);
         add(lblTitle);
         
         // Setup artist label
         lblArtist = new JLabel("Artist: ");
-        lblArtist.setBounds(300, 65, 300, 25);
+        lblArtist.setBounds(140, 65, 450, 25);
         add(lblArtist);
         
         // Setup album label
         lblAlbum = new JLabel("Album: ");
-        lblAlbum.setBounds(300, 90, 300, 25);
+        lblAlbum.setBounds(140, 90, 450, 25);
         add(lblAlbum);
         
         // Setup time display label
         lblDisplay = new JLabel("00:00");
-        lblDisplay.setBounds(300, 10, 100, 30);
+        lblDisplay.setBounds(140, 10, 100, 30);
         lblDisplay.setFont(new Font("Dialog", Font.BOLD, 30));
         add(lblDisplay);
         
         // Setup Play button
         btnPlay = new JButton();
-        btnPlay.setBounds(50, 30, 60, 60);
+        btnPlay.setBounds(50, 140, 60, 60);
         btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
         btnPlay.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	if (driver.getState() == BasicPlayerEvent.PLAYING | driver.getState() == BasicPlayerEvent.RESUMED) {
             		driver.pause();
-//            		btnPlay.setText("Resume");
             		btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
             		mntmPause.setText("Resume");
             	} else if (driver.getState() == BasicPlayerEvent.PAUSED) {
             		driver.resume();
-//            		btnPlay.setText("Pause");
             		btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/pause.png"));
             		mntmPause.setText("Pause");
             	} else if (driver.getState() == BasicPlayerEvent.STOPPED | driver.getState() == BasicPlayerEvent.OPENED) {
             		driver.play();
-//            		btnPlay.setText("Pause");
             		btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/pause.png"));
             		mntmPause.setText("Pause");
             	}
@@ -310,35 +318,56 @@ public class YampUI extends JFrame {
         
         // Setup FF button
         btnForward = new JButton();
-        btnForward.setBounds(110, 40, 40, 40);
+        btnForward.setBounds(110, 150, 40, 40);
         btnForward.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/forward.png"));
         add(btnForward);
         
         // Setup RW button
         btnRewind = new JButton();
-        btnRewind.setBounds(10, 40, 40, 40);
+        btnRewind.setBounds(10, 150, 40, 40);
         btnRewind.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/rewind.png"));
         add(btnRewind);
         
+        // Setup stop button
+        btnStop = new JButton();
+        btnStop.setBounds(170, 150, 40, 40);
+        btnStop.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/stop.png"));
+        btnStop.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	driver.stop();
+            	btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
+            	mntmPause.setText("Pause");
+            	lblDisplay.setText("00:00");
+            }
+        });
+        add(btnStop);
+        
+        // Setup mute button
+        btnMute = new JButton();
+        btnMute.setBounds(240, 150, 40, 40);
+        btnMute.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/volume.png"));
+        add(btnMute);
+        
         // Setup Cover Art label
         lblCoverArt = new JLabel();
-        lblCoverArt.setBounds(290-COVER_SIZE, 0, COVER_SIZE, COVER_SIZE);
+        lblCoverArt.setBounds(10, 10, COVER_SIZE, COVER_SIZE);
+		lblCoverArt.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/placeholder120.png"));
         add(lblCoverArt);
 
-        // Setup time label
-        lblTime = new JLabel("00:00");
-        lblTime.setBounds(50, 120, 40, 25);
-        add(lblTime);
-        
-        // Setup remaining time label
-        lblTotal = new JLabel("??:??");
-        lblTotal.setBounds(380, 120, 40, 25);
-        add(lblTotal);
+//        // Setup time label
+//        lblTime = new JLabel("00:00");
+//        lblTime.setBounds(170, 120, 40, 25);
+//        add(lblTime);
+//        
+//        // Setup remaining time label
+//        lblTotal = new JLabel("??:??");
+//        lblTotal.setBounds(540, 120, 40, 25);
+//        add(lblTotal);
         
         // Setup time slider
         sldTime = new JSlider();
         sldTime = new JSlider(0, 100, 0);
-        sldTime.setBounds(50, 140, 360, 25);
+        sldTime.setBounds(140, 110, 450, 25);
         sldTime.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent event) {
 //                driver.jump(sldTime.getValue());
@@ -347,24 +376,65 @@ public class YampUI extends JFrame {
         add(sldTime);
         
         // Setup volume label
-        lblVolume = new JLabel("Volume level: 85");
-        lblVolume.setBounds(50, 170, 140, 25);
+        lblVolume = new JLabel("Volume: 85");
+        lblVolume.setBounds(305, 160, 85, 25);
         add(lblVolume);
         
         // Setup volume slider
         sldVolume = new JSlider();
         sldVolume = new JSlider(0, 100, 85);
-        sldVolume.setBounds(180, 170, 200, 25);
+        sldVolume.setBounds(390, 160, 200, 25);
         sldVolume.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent event) {
-                lblVolume.setText("Volume level: " + sldVolume.getValue());
+                lblVolume.setText("Volume: " + sldVolume.getValue());
                 driver.setVolume(sldVolume.getValue());
             }
         });
         add(sldVolume);
         
+        // Setup playlist table and model
+        tablemodel = new DefaultTableModel();
+        table = new JTable(tablemodel);
+        String[] columnNames = {"No", "Title", "Artist", "Album"};
+        tablemodel.setColumnIdentifiers(columnNames);
+
         
+        scrollPane = new JScrollPane(table);
+        table.setFillsViewportHeight(true);
+        scrollPane.setBounds(10, 210, 570, 200);
+        add(scrollPane);
         
+        // Setup Append Button
+        btnAppend = new JButton("+");
+        btnAppend.setBounds(10, 420, 50, 25);
+        btnAppend.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		// Allow multiple files to be selected
+        		fc.setMultiSelectionEnabled(true);
+        		int returnVal = fc.showOpenDialog(YampUI.this);
+        		if (returnVal == JFileChooser.APPROVE_OPTION) {
+        			File[] selectedFiles = fc.getSelectedFiles();
+        			// For each file append to playlist and listmodel
+        			for (File file : selectedFiles) {
+        				System.out.println("Appended to playlist: " + file.getPath() + ".");
+        				YampPlaylistElement pelement = new YampPlaylistElement(file);
+	        			playlist.appendElement(pelement);
+        				String[] rowdata ={"0", pelement.getID3v2Tag().getTitle(), pelement.getID3v2Tag().getArtist(), pelement.getID3v2Tag().getAlbum()};
+	        			tablemodel.addRow(rowdata);
+	        			
+        			}
+        		} else {
+        			System.out.println("Open command cancelled by user.");
+        		}
+        	}
+        });
+        add(btnAppend);
+        
+        //Setup Remove Button
+        btnRemove = new JButton("-");
+        btnRemove.setBounds(60, 420, 50, 25);
+        add(btnRemove);
 	}
+
 
 }
