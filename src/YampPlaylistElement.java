@@ -8,6 +8,7 @@ import com.mpatric.mp3agic.UnsupportedTagException;
 
 
 public class YampPlaylistElement {
+//	private int index;
 	private File musicfile;
 	private Mp3File mp3file;
 	private ID3v2 id3v2tag;
@@ -30,5 +31,14 @@ public class YampPlaylistElement {
 	public ID3v2 getID3v2Tag() {
 		return id3v2tag;
 	}
+	
+//	public int getIndex() {
+//		return index;
+//	}
+//	
+//	public void setIndex(int index) {
+//		this.index = index;
+//	}
+	
 
 }

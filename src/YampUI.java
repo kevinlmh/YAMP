@@ -2,12 +2,16 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.DropMode;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -20,6 +24,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.Timer;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableModel;
@@ -34,8 +39,7 @@ import javazoom.jlgui.basicplayer.BasicPlayerEvent;
 
 public class YampUI extends JFrame {
 	// Cover art label size 
-	private final int COVER_SIZE = 120;
-	
+	private final int COVER_SIZE = 120;	
 	// Yamp driver
 	private YampDriver driver;
 	// File chooser
@@ -46,8 +50,9 @@ public class YampUI extends JFrame {
 	private YampPlaylist playlist;
 	// Total time of current song
 	private int totalTime;
-	// Total number of bytes
-	private int totalBytes;
+//	// Total number of bytes
+//	private int totalBytes;
+	private YampLyricsWindow lyricswindow;
 	
 	/* Swing components declaration */
 	private JButton btnPlay;
@@ -59,9 +64,8 @@ public class YampUI extends JFrame {
 	private JLabel lblArtist;
 	private JLabel lblAlbum;
 	private JLabel lblVolume;
-//	private JLabel lblTime;
-//	private JLabel lblTotal;
 	private JLabel lblDisplay;
+	private JLabel lblRemain;
 	private JLabel lblCoverArt;
 	private JSlider sldVolume;
 	private JSlider sldTime;
@@ -107,25 +111,27 @@ public class YampUI extends JFrame {
 		this.playlist = playlist;
 	}
 	
-	public void updateTime(int seconds) {
-		int min = seconds/60;
-		int sec = seconds%60;
-//		lblTime.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
-		lblDisplay.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
-		sldTime.setValue(100*seconds/totalTime);
+	/**
+	 * 
+	 * @param position of the song in seconds
+	 */
+	public void updateTime(int position) {
+		lblDisplay.setText(String.format("%02d", position/60) + ":" + String.format("%02d", position%60));
+		lblRemain.setText(String.format("%02d", (totalTime-position)/60) + ":" + String.format("%02d", (totalTime-position)%60));
+		sldTime.setValue((int)(1000*position/totalTime));
 	}
 	
-	public void setTotalTime(int seconds) {
-		totalTime = seconds;
-		int min = seconds/60;
-		int sec = seconds%60;
-//		lblTotal.setText(String.format("%02d", min) + ":" + String.format("%02d", sec));
+	/**
+	 * 
+	 * @param totalTime total time of the song in seconds
+	 */
+	public void setTotalTime(int totalTime) {
+		this.totalTime = totalTime;
 	}
 	
-	public void setTotalBytes(int totalBytes) {
-		this.totalBytes = totalBytes;
+	public void resetPlayButton() {
+		btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
 	}
-	
 
 	/**
 	 *  This method initializes the GUI elements
@@ -133,6 +139,7 @@ public class YampUI extends JFrame {
 	public void initUI() {
 		//setTitle("Yamp");
         setSize(600, 500);
+        setResizable(false);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         // optional: this line set the window to the center of screen
         setLocationRelativeTo(null);
@@ -158,14 +165,17 @@ public class YampUI extends JFrame {
 	            if (returnVal == JFileChooser.APPROVE_OPTION) {
 	                selectedFile = fc.getSelectedFile();
 	                //This is where a real application would open the file.
-	                System.out.println("Opening: " + selectedFile.getPath() + ".");
+//	                System.out.println("Opening: " + selectedFile.getPath() + ".");
 	                try {
 						Mp3File mp3file = new Mp3File(selectedFile.getPath());
 						if (mp3file.hasId3v2Tag()) {
+							// Get id3v2 tags
 		        			ID3v2 id3v2Tag = mp3file.getId3v2Tag();
+		        			// Display title artist and album info in dashboard labels 
 		        			lblTitle.setText("Title: " + id3v2Tag.getTitle());
 		        			lblArtist.setText("Artist: " + id3v2Tag.getArtist());
 		        			lblAlbum.setText("Album: " + id3v2Tag.getAlbum());
+		        			// Resize and display cover art
 		        			BufferedImage coverart = null;
 		        			coverart = ImageIO.read(new ByteArrayInputStream(id3v2Tag.getAlbumImage()));
 		        			BufferedImage resizedimage = new BufferedImage(COVER_SIZE, COVER_SIZE, BufferedImage.TYPE_INT_RGB);
@@ -178,16 +188,42 @@ public class YampUI extends JFrame {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
+	                // open the file in basicplayer
 	                driver.open(selectedFile.getPath());
+	                // Append to playlist
+	                System.out.println("Appended to playlist: " + selectedFile.getPath() + ".");
+    				YampPlaylistElement pelement = new YampPlaylistElement(selectedFile);
+        			playlist.appendElement(pelement);
+    				String[] rowdata = {String.format("%02d",playlist.size()), pelement.getID3v2Tag().getTitle(), pelement.getID3v2Tag().getArtist(), pelement.getID3v2Tag().getAlbum()};
+        			tablemodel.addRow(rowdata);
+	                // Change play pause button icon
 	                btnPlay.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/play.png"));
 	            } else {
-	                System.out.println("Open command cancelled by user.");
+//	                System.out.println("Open command cancelled by user.");
 	            }
 	          }
 	        });
 		mnFile.add(mntmOpen);
 		
 		mntmOpenLyrics = new JMenuItem("Open Lyrics");
+		mntmOpenLyrics.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				fc.setMultiSelectionEnabled(false);
+				int returnVal = fc.showOpenDialog(YampUI.this);
+	            if (returnVal == JFileChooser.APPROVE_OPTION) {
+	                selectedFile = fc.getSelectedFile();
+	                String filename = selectedFile.getName();
+	                // Get the extension of the file
+	                String extension = filename.substring(filename.lastIndexOf(".") + 1, filename.length());
+	                lyricswindow = new YampLyricsWindow();
+	                lyricswindow.displayLyrics(selectedFile, extension);
+	                lyricswindow.setVisible(true);
+	            } 
+	            else {
+//	                System.out.println("Open command cancelled by user.");
+	            }
+			}
+		});
 		mnFile.add(mntmOpenLyrics);
 		
 		mntmFileInfo = new JMenuItem("File Info");
@@ -257,6 +293,27 @@ public class YampUI extends JFrame {
 		menuBar.add(mnPlaylist);
 		
 		mntmAddToPlaylist = new JMenuItem("Add to Playlist");
+		mntmAddToPlaylist.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+        		// Allow multiple files to be selected
+        		fc.setMultiSelectionEnabled(true);
+        		int returnVal = fc.showOpenDialog(YampUI.this);
+        		if (returnVal == JFileChooser.APPROVE_OPTION) {
+        			File[] selectedFiles = fc.getSelectedFiles();
+        			// For each file append to playlist and jtable model
+        			for (File file : selectedFiles) {
+        				System.out.println("Appended to playlist: " + file.getPath() + ".");
+        				YampPlaylistElement pelement = new YampPlaylistElement(file);
+	        			playlist.appendElement(pelement);
+        				String[] rowdata = {String.format("%02d",playlist.size()), pelement.getID3v2Tag().getTitle(), pelement.getID3v2Tag().getArtist(), pelement.getID3v2Tag().getAlbum()};
+	        			tablemodel.addRow(rowdata);
+	        			
+        			}
+        		} else {
+//        			System.out.println("Open command cancelled by user.");
+        		}
+            }
+          });
 		mnPlaylist.add(mntmAddToPlaylist);
 		
 		mntmRemoveSelections = new JMenuItem("Remove Selections");
@@ -270,7 +327,6 @@ public class YampUI extends JFrame {
 		
 		mntmLoadPlaylist = new JMenuItem("Load Playlist");
 		mnPlaylist.add(mntmLoadPlaylist);
-        
         
 		// Setup title label
         lblTitle = new JLabel("Title: ");
@@ -292,6 +348,12 @@ public class YampUI extends JFrame {
         lblDisplay.setBounds(140, 10, 100, 30);
         lblDisplay.setFont(new Font("Dialog", Font.BOLD, 30));
         add(lblDisplay);
+        
+        // Setup the time remaining label
+        lblRemain = new JLabel("00:00");
+        lblRemain.setBounds(490, 10, 100, 30);
+        lblRemain.setFont(new Font("Dialog", Font.BOLD, 30));
+        add(lblRemain);
         
         // Setup Play button
         btnPlay = new JButton();
@@ -320,12 +382,56 @@ public class YampUI extends JFrame {
         btnForward = new JButton();
         btnForward.setBounds(110, 150, 40, 40);
         btnForward.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/forward.png"));
+//        btnForward.addActionListener(new ActionListener() {
+//        	public void actionPerformed(ActionEvent e) {
+//        		driver.forward(5);
+//        	}
+//        });
+        Timer forwardTimer = new Timer(100, new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		driver.forward(1);
+        	}
+        });
+        btnForward.addMouseListener(new MouseAdapter() {
+        	@Override
+        	public void mouseClicked(MouseEvent e) {
+        		driver.forward(3);
+        	}
+            @Override
+            public void mousePressed(MouseEvent e) {
+            	forwardTimer.start();
+            }
+            @Override
+            public void mouseReleased(MouseEvent e) {
+            	forwardTimer.stop();
+            }
+        });
+
         add(btnForward);
         
         // Setup RW button
         btnRewind = new JButton();
         btnRewind.setBounds(10, 150, 40, 40);
         btnRewind.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/rewind.png"));
+        Timer rewindTimer = new Timer(100, new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		driver.rewind(10);
+        	}
+        });
+        btnRewind.addMouseListener(new MouseAdapter() {
+        	@Override
+        	public void mouseClicked(MouseEvent e) {
+        		driver.rewind(5);
+        	}
+            @Override
+            public void mousePressed(MouseEvent e) {
+            	rewindTimer.start();
+            }
+            @Override
+            public void mouseReleased(MouseEvent e) {
+            	rewindTimer.stop();
+            }
+        });
         add(btnRewind);
         
         // Setup stop button
@@ -353,20 +459,10 @@ public class YampUI extends JFrame {
         lblCoverArt.setBounds(10, 10, COVER_SIZE, COVER_SIZE);
 		lblCoverArt.setIcon(new ImageIcon("/home/kevin/workspace/YAMP/png/placeholder120.png"));
         add(lblCoverArt);
-
-//        // Setup time label
-//        lblTime = new JLabel("00:00");
-//        lblTime.setBounds(170, 120, 40, 25);
-//        add(lblTime);
-//        
-//        // Setup remaining time label
-//        lblTotal = new JLabel("??:??");
-//        lblTotal.setBounds(540, 120, 40, 25);
-//        add(lblTotal);
         
         // Setup time slider
         sldTime = new JSlider();
-        sldTime = new JSlider(0, 100, 0);
+        sldTime = new JSlider(0, 1000, 0);
         sldTime.setBounds(140, 110, 450, 25);
         sldTime.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent event) {
@@ -393,11 +489,24 @@ public class YampUI extends JFrame {
         add(sldVolume);
         
         // Setup playlist table and model
-        tablemodel = new DefaultTableModel();
+        tablemodel = new DefaultTableModel() {
+        	// disable editing of cells by double click
+            @Override
+            public boolean isCellEditable(int row, int column) {
+               return false;
+            }
+        };
         table = new JTable(tablemodel);
+        table.setDragEnabled(true);
+//        table.setDropMode(DropMode.INSERT_ROWS);
+//        table.setTransferHandler(new TableRowTransferHandler(table));
         String[] columnNames = {"No", "Title", "Artist", "Album"};
         tablemodel.setColumnIdentifiers(columnNames);
-
+        // Set width of each column 
+        table.getColumnModel().getColumn(0).setPreferredWidth(10);
+        table.getColumnModel().getColumn(1).setPreferredWidth(200);
+        table.getColumnModel().getColumn(2).setPreferredWidth(100);
+        table.getColumnModel().getColumn(3).setPreferredWidth(200);
         
         scrollPane = new JScrollPane(table);
         table.setFillsViewportHeight(true);
@@ -416,15 +525,14 @@ public class YampUI extends JFrame {
         			File[] selectedFiles = fc.getSelectedFiles();
         			// For each file append to playlist and listmodel
         			for (File file : selectedFiles) {
-        				System.out.println("Appended to playlist: " + file.getPath() + ".");
+//        				System.out.println("Appended to playlist: " + file.getPath() + ".");
         				YampPlaylistElement pelement = new YampPlaylistElement(file);
 	        			playlist.appendElement(pelement);
-        				String[] rowdata ={"0", pelement.getID3v2Tag().getTitle(), pelement.getID3v2Tag().getArtist(), pelement.getID3v2Tag().getAlbum()};
+        				String[] rowdata = {String.format("%02d",playlist.size()), pelement.getID3v2Tag().getTitle(), pelement.getID3v2Tag().getArtist(), pelement.getID3v2Tag().getAlbum()};
 	        			tablemodel.addRow(rowdata);
-	        			
         			}
         		} else {
-        			System.out.println("Open command cancelled by user.");
+//        			System.out.println("Open command cancelled by user.");
         		}
         	}
         });
@@ -433,6 +541,24 @@ public class YampUI extends JFrame {
         //Setup Remove Button
         btnRemove = new JButton("-");
         btnRemove.setBounds(60, 420, 50, 25);
+        btnRemove.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		// Get user-selected rows from JTable
+        		int[] selectedRows = table.getSelectedRows();
+        		// Remove each row
+        		int numberRemoved = 0;
+        		for (int i : selectedRows) {
+//        			System.out.println("Removed from playlist: " + playlist.get(i).getMp3File().getFilename() + ".");
+        			playlist.remove(i - numberRemoved);
+        			tablemodel.removeRow(i - numberRemoved);
+        			numberRemoved++;     	
+        		}
+        		// update indices
+        		for (int j = 0; j < playlist.size(); j++) {
+        				tablemodel.setValueAt(String.format("%02d", j+1), j, 0);
+        		}
+        	}
+        });
         add(btnRemove);
 	}
 

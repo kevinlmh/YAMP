@@ -19,24 +19,28 @@ public class YampDriver implements BasicPlayerListener {
 	private YampPlaylist playlist = null;
 	// Info Window
 	private YampInfoWindow infowindow;
-	
+
 	// Path of current song that is opened
 	private String currentSongPath;
 	// Total number of bytes
 	private int totalBytes;
+	// Number of bytes per second
+	private int bytesPerSecond;
 	// Current byte
 	private int currentByte;
+	// Previous time
+	private long prevTime;
 	// Current player state
 	private int currentState;
-	
-	/** 
-	 * Constructor. 
+
+	/**
+	 * Constructor.
 	 */
 	public YampDriver() {
 		// Instantiate BasicPlayer.
 		player = new BasicPlayer();
 		// BasicPlayer is a BasicController.
-		control = (BasicController) player;	
+		control = (BasicController) player;
 		try {
 			control.setGain(0.85);
 			control.setPan(0.0);
@@ -52,11 +56,11 @@ public class YampDriver implements BasicPlayerListener {
 		ui = new YampUI("Yet Another Music Player", YampDriver.this, playlist);
 		ui.setVisible(true);
 	}
-	
+
 	public static void main(String[] args) {
 		YampDriver test = new YampDriver();
 	}
-	
+
 	public void open(String filepath) {
 		try {
 			control.open(new File(filepath));
@@ -65,17 +69,16 @@ public class YampDriver implements BasicPlayerListener {
 			e.printStackTrace();
 		}
 		currentSongPath = filepath;
-
 	}
-	
+
 	public void play() {
-		try { 
+		try {
 			control.play();
 		} catch (BasicPlayerException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void stop() {
 		try {
 			control.stop();
@@ -84,7 +87,7 @@ public class YampDriver implements BasicPlayerListener {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void pause() {
 		try {
 			control.pause();
@@ -93,7 +96,7 @@ public class YampDriver implements BasicPlayerListener {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void resume() {
 		try {
 			control.resume();
@@ -101,29 +104,38 @@ public class YampDriver implements BasicPlayerListener {
 			e.printStackTrace();
 		}
 	}
-	
-	public void skip(int bytes) {
+
+	public void forward(int seconds) {
 		try {
-			control.seek(bytes);
+			control.seek(currentByte + seconds * bytesPerSecond);
+		} catch (BasicPlayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public void rewind(int seconds) {
+		try {
+			control.seek(currentByte - seconds * bytesPerSecond);
+		} catch (BasicPlayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public void setVolume(int percentage) {
+		try {
+			control.setGain((double) percentage / 100.0);
 		} catch (BasicPlayerException e) {
 			e.printStackTrace();
 		}
 	}
-	
-	public void jump(int percentage) {
-		int position = (int)(totalBytes * (percentage / 100.0)) - currentByte;
-		try {
-			control.seek(position);
-		} catch (BasicPlayerException e) {
-			e.printStackTrace();
-		}
-	}
-	
+
 	public void quit() {
 		stop();
 		System.exit(0);
 	}
-	
+
 	public void displayInfo() {
 		if (currentSongPath != null) {
 			infowindow = new YampInfoWindow(currentSongPath);
@@ -131,24 +143,23 @@ public class YampDriver implements BasicPlayerListener {
 		} else {
 			System.out.println("File Info: No open file.");
 		}
-		
+
 	}
-	
-	public void setVolume(int percentage) {
-		try {
-			control.setGain((double)percentage/100.0);
-		} catch (BasicPlayerException e) {
-			e.printStackTrace();
-		}
-	}
-	
+
 	public int getState() {
 		return currentState;
 	}
-	
+
+	public int getbytesPerSecond() {
+		return bytesPerSecond;
+	}
+
+	public int getTotalBytes() {
+		return totalBytes;
+	}
+
 	/* Implementation of functions in BasicPlayerListener interface */
-	
-	
+
 	/**
 	 * Open callback, stream is ready to play.
 	 *
@@ -166,10 +177,12 @@ public class YampDriver implements BasicPlayerListener {
 		// Pay attention to properties. It's useful to get duration,
 		// bit rate, channels, even tag such as ID3v2.
 		System.out.println("opened : " + properties.toString());
-		int seconds = (int)((Long)(properties.get("duration"))/1000000);
+		int seconds = (int) ((Long) (properties.get("duration")) / 1000000);
 		ui.setTotalTime(seconds);
-		totalBytes = (int)properties.get("mp3.length.bytes");
-		ui.setTotalBytes(totalBytes);
+		totalBytes = (Integer) properties.get("mp3.length.bytes");
+		bytesPerSecond = (int) ((int) properties.get("mp3.framesize.bytes") * (float) properties
+				.get("mp3.framerate.fps"));
+
 	}
 
 	/**
@@ -190,16 +203,13 @@ public class YampDriver implements BasicPlayerListener {
 	 */
 	@Override
 	@SuppressWarnings("rawtypes")
-	public void progress(int bytesread, long microseconds, byte[] pcmdata, Map properties) {
+	public void progress(int bytesread, long microseconds, byte[] pcmdata,
+			Map properties) {
 		// Pay attention to properties. It depends on underlying JavaSound SPI
 		// MP3SPI provides mp3.equalizer.
-//		System.out.println("progress : " + properties.toString());
-//		System.out.println("bytesread: " + bytesread + ", microseconds: " + microseconds);
+//		 System.out.println("progress : " + properties.toString());
 		currentByte = bytesread;
-		int seconds = (int) (microseconds / 1000000);
-		ui.updateTime(seconds);
-//		ui.updateTime(currentByte);
-		
+		ui.updateTime((int) ((long)properties.get("mp3.position.microseconds")/1000000));
 	}
 
 	/**
@@ -212,12 +222,15 @@ public class YampDriver implements BasicPlayerListener {
 		// Notification of BasicPlayer states (opened, playing, end of media,
 		// ...)
 		System.out.println("stateUpdated : " + event.toString());
-		if (event.getCode() != BasicPlayerEvent.GAIN 	|
-			event.getCode() != BasicPlayerEvent.PAN 	|
-			event.getCode() != BasicPlayerEvent.OPENING | 
-			event.getCode() != BasicPlayerEvent.SEEKING | 
-			event.getCode() != BasicPlayerEvent.UNKNOWN) {
+		if (event.getCode() != BasicPlayerEvent.GAIN
+				| event.getCode() != BasicPlayerEvent.PAN
+				| event.getCode() != BasicPlayerEvent.OPENING
+				| event.getCode() != BasicPlayerEvent.SEEKING
+				| event.getCode() != BasicPlayerEvent.UNKNOWN) {
 			currentState = event.getCode();
+		}
+		if (event.getCode() == BasicPlayerEvent.EOM){
+			ui.resetPlayButton();
 		}
 	}
 
@@ -230,7 +243,7 @@ public class YampDriver implements BasicPlayerListener {
 	 */
 	@Override
 	public void setController(BasicController controller) {
-		System.out.println("setController : " + controller);
+//		System.out.println("setController : " + controller);
 	}
-	
+
 }
