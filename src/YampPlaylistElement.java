@@ -17,11 +17,21 @@ public class YampPlaylistElement {
 		this.musicfile = file;
 		try {
 			this.mp3file = new Mp3File(file);
-		} catch (UnsupportedTagException | InvalidDataException | IOException e) {
+		} catch (UnsupportedTagException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
+		} catch (InvalidDataException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		} catch (IOException e3) {
+			// TODO Auto-generated catch block
+			e3.printStackTrace();
 		}
 		this.id3v2tag = mp3file.getId3v2Tag();
+	}
+	
+	public File getFile() {
+		return musicfile;
 	}
 	
 	public Mp3File getMp3File() {

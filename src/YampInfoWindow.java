@@ -52,9 +52,15 @@ public class YampInfoWindow extends JFrame {
 		super("Song Info: " + filename);
 		try {
 			mp3file = new Mp3File(filename);
-		} catch (UnsupportedTagException | InvalidDataException | IOException e) {
+		} catch (UnsupportedTagException e1) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			e1.printStackTrace();
+		} catch (InvalidDataException e2) {
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		} catch (IOException e3) {
+			// TODO Auto-generated catch block
+			e3.printStackTrace();
 		}
 		initUI();
 		parseTags();

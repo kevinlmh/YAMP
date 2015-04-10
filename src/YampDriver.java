@@ -26,12 +26,14 @@ public class YampDriver implements BasicPlayerListener {
 	private int totalBytes;
 	// Number of bytes per second
 	private int bytesPerSecond;
+	// Header position
+	private int headerPosition;
 	// Current byte
 	private int currentByte;
-	// Previous time
-	private long prevTime;
 	// Current player state
 	private int currentState;
+	// Duration of current song
+	private int duration;
 
 	/**
 	 * Constructor.
@@ -104,6 +106,15 @@ public class YampDriver implements BasicPlayerListener {
 			e.printStackTrace();
 		}
 	}
+	
+	public void jump(int seconds) {
+		try {
+			control.seek(headerPosition + bytesPerSecond * seconds);
+		} catch (BasicPlayerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	public void forward(int seconds) {
 		try {
@@ -157,6 +168,10 @@ public class YampDriver implements BasicPlayerListener {
 	public int getTotalBytes() {
 		return totalBytes;
 	}
+	
+	public int getDuration() {
+		return duration;
+	}
 
 	/* Implementation of functions in BasicPlayerListener interface */
 
@@ -177,11 +192,12 @@ public class YampDriver implements BasicPlayerListener {
 		// Pay attention to properties. It's useful to get duration,
 		// bit rate, channels, even tag such as ID3v2.
 		System.out.println("opened : " + properties.toString());
-		int seconds = (int) ((Long) (properties.get("duration")) / 1000000);
-		ui.setTotalTime(seconds);
+		duration = (int) ((Long) (properties.get("duration")) / 1000000);
+		ui.setTotalTime(duration);
 		totalBytes = (Integer) properties.get("mp3.length.bytes");
-		bytesPerSecond = (int) ((int) properties.get("mp3.framesize.bytes") * (float) properties
+		bytesPerSecond = (int) ((Integer) properties.get("mp3.framesize.bytes") * (Float) properties
 				.get("mp3.framerate.fps"));
+		headerPosition = (Integer) properties.get("mp3.header.pos");
 
 	}
 
@@ -209,7 +225,7 @@ public class YampDriver implements BasicPlayerListener {
 		// MP3SPI provides mp3.equalizer.
 //		 System.out.println("progress : " + properties.toString());
 		currentByte = bytesread;
-		ui.updateTime((int) ((long)properties.get("mp3.position.microseconds")/1000000));
+		ui.updateTime((int) ((Long)properties.get("mp3.position.microseconds")/1000000));
 	}
 
 	/**
@@ -233,7 +249,7 @@ public class YampDriver implements BasicPlayerListener {
 			ui.resetPlayButton();
 		}
 	}
-
+	
 	/**
 	 * A handle to the BasicPlayer, plugins may control the player through the
 	 * controller (play, stop, ...)

@@ -10,23 +10,15 @@ public class YampPlaylist {
 	
 	public void appendElement(YampPlaylistElement element) {
 		playlist.add(element);
-//		element.setIndex(playlist.size());
+
 	}
 	
 	public void add(int index, YampPlaylistElement element) {
 		playlist.add(index, element);
-//		element.setIndex(index);
-//		// change the index number of all the elements behind
-//		for (int i = index + 1; i < playlist.size(); i++) {
-//			playlist.get(i).setIndex(i);
-//		}
 	}
 	
 	public void remove(int index) {
 		playlist.remove(index);
-//		for (int i = index; i < playlist.size(); i++) {
-//			playlist.get(i).setIndex(i);
-//		}
 	}
 	
 	public YampPlaylistElement get(int index) {
@@ -35,5 +27,19 @@ public class YampPlaylist {
 	
 	public int size() {
 		return playlist.size();
+	}
+	
+	public void clear() {
+		for (int i = playlist.size()-1; i >= 0; i--) {
+			playlist.remove(i);
+		}
+	}
+	
+	public void debugPrint() {
+		System.out.println("Playlist debug print");
+		for (int i = 0; i < playlist.size(); i++) {
+			System.out.println(playlist.get(i).getMp3File().getFilename());
+		}
+		
 	}
 }
