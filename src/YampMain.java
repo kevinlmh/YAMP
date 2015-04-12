@@ -1,3 +1,4 @@
+import java.awt.Desktop;
 import java.awt.Graphics;
 import java.awt.GraphicsConfiguration;
 import java.awt.HeadlessException;
@@ -11,11 +12,14 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -71,8 +75,8 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	/* UI components of the main window */
 	/* Swing components declaration */
 	private JButton btnPlay;
-	private JButton btnForward;
-	private JButton btnRewind;
+	private JButton btnNext;
+	private JButton btnPrevious;
 	private JButton btnStop;
 	private JButton btnMute;
 	private JToggleButton btnTogglePlaylist;
@@ -102,6 +106,10 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private JMenuItem mntmIncreaseVolume;
 	private JMenuItem mntmDecreaseVolume;
 	private JMenuItem mntmMute;
+	private JMenu mnMode;
+	private JCheckBoxMenuItem mntmRepeatPlaylist;
+	private JCheckBoxMenuItem mntmRepeatOne;
+	private JCheckBoxMenuItem mntmShuffle;
 	private JMenu mnPlaylist;
 	private JMenuItem mntmAddToPlaylist;
 	private JMenuItem mntmRemoveSelections;
@@ -184,6 +192,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			//		btnPlay.setIcon(new ImageIcon(getClass().getResource("/png/play.png")));
 			prbTime.setValue(0);
 			prbTime.setString(String.format("%-90s", "00:00") + "00:00");
+			loadOnDeck(playlistwindow.next());
 		}
 	}
 
@@ -404,9 +413,19 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mnControl.add(mntmStop);
 
 		mntmPrevious = new JMenuItem("Previous");
+		mntmPrevious.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadOnDeck(playlistwindow.previous());
+			}
+		});
 		mnControl.add(mntmPrevious);
 
 		mntmNext = new JMenuItem("Next");
+		mntmNext.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadOnDeck(playlistwindow.next());
+			}
+		});
 		mnControl.add(mntmNext);
 		
 		mnVolume = new JMenu("Volume");
@@ -466,6 +485,47 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			}
 		});
 		mnVolume.add(mntmMute);
+		
+		mnMode = new JMenu("Play Mode");
+		menuBar.add(mnMode);
+		
+		mntmRepeatPlaylist = new JCheckBoxMenuItem("Repeate Playlist");
+		mntmRepeatPlaylist.setState(true);
+		mntmRepeatPlaylist.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (mntmRepeatPlaylist.isSelected()) {
+					playlistwindow.setPlayMode(YampPlaylistWindow.REPEATE_PLAYLIST);
+					mntmRepeatOne.setState(false);
+					mntmShuffle.setState(false);
+				}
+				
+			}
+		});
+		mnMode.add(mntmRepeatPlaylist);		
+		
+		mntmRepeatOne = new JCheckBoxMenuItem("Repeate One");
+		mntmRepeatOne.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (mntmRepeatOne.isSelected()) {
+					playlistwindow.setPlayMode(YampPlaylistWindow.REPEATE_ONE);
+					mntmRepeatPlaylist.setState(false);
+					mntmShuffle.setState(false);
+				}
+			}
+		});
+		mnMode.add(mntmRepeatOne);	
+		
+		mntmShuffle = new JCheckBoxMenuItem("Shuffle");
+		mntmShuffle.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (mntmShuffle.isSelected()) {
+					playlistwindow.setPlayMode(YampPlaylistWindow.SHUFFLE);
+					mntmRepeatPlaylist.setState(false);
+					mntmRepeatOne.setState(false);
+				}
+			}
+		});
+		mnMode.add(mntmShuffle);	
 
 		mnPlaylist = new JMenu("Playlist");
 		menuBar.add(mnPlaylist);
@@ -517,6 +577,14 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mntmPlaylist = new JMenuItem("Show Playlist");
 		mntmPlaylist.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				if (playlistwindow.isVisible()) {
+					playlistwindow.setVisible(false);
+					mntmPlaylist.setText("Show Playlist");
+				} else {
+					playlistwindow.setLocation(YampMain.this.getX(), YampMain.this.getY()+250);
+					playlistwindow.setVisible(true);
+					mntmPlaylist.setText("Hide Playlist");
+				}
 
 			}
 		});
@@ -550,9 +618,16 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		menuBar.add(mnHelp);
 		
 		mntmWebsite = new JMenuItem("Yamp Website");
-		mntmPlaylist.addActionListener(new ActionListener() {
+		mntmWebsite.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
+				Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+			    if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+			        try {
+			            desktop.browse(new URI("http://kevinlmh.github.io/YAMP/"));
+			        } catch (Exception e1) {
+			            e1.printStackTrace();
+			        }
+			    }
 			}
 		});
 		mnHelp.add(mntmWebsite);
@@ -632,19 +707,29 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		add(btnPlay);
 
-		// Setup FF button
-		btnForward = new JButton();
-		btnForward.setBounds(110, 150, 40, 40);
-		btnForward.setIcon(new ImageIcon(getClass().getResource(
+		// Setup next button
+		btnNext = new JButton();
+		btnNext.setBounds(110, 150, 40, 40);
+		btnNext.setIcon(new ImageIcon(getClass().getResource(
 				"/res/forward.png")));
-		add(btnForward);
+		btnNext.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadOnDeck(playlistwindow.next());
+			}
+		});
+		add(btnNext);
 
-		// Setup RW button
-		btnRewind = new JButton();
-		btnRewind.setBounds(10, 150, 40, 40);
-		btnRewind.setIcon(new ImageIcon(getClass().getResource(
+		// Setup previous button
+		btnPrevious = new JButton();
+		btnPrevious.setBounds(10, 150, 40, 40);
+		btnPrevious.setIcon(new ImageIcon(getClass().getResource(
 				"/res/rewind.png")));
-		add(btnRewind);
+		btnPrevious.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadOnDeck(playlistwindow.previous());
+			}
+		});
+		add(btnPrevious);
 
 		// Setup stop button
 		btnStop = new JButton();
@@ -664,7 +749,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 
 		// Setup mute button
 		btnMute = new JButton();
-		btnMute.setBounds(210, 150, 40, 40);
+		btnMute.setBounds(420, 150, 40, 40);
 		btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
 		btnMute.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -688,13 +773,13 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 
 		// Setup volume label
 		lblVolume = new JLabel("50");
-		lblVolume.setBounds(255, 160, 25, 25);
+		lblVolume.setBounds(465, 160, 25, 25);
 		add(lblVolume);
 
 		// Setup volume slider
 		sldVolume = new JSlider();
 		sldVolume = new JSlider(0, 100, 50);
-		sldVolume.setBounds(280, 160, 100, 25);
+		sldVolume.setBounds(490, 160, 100, 25);
 		sldVolume.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				lblVolume.setText(Integer.toString(sldVolume.getValue()));
@@ -708,23 +793,23 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		add(sldVolume);
 		
-		// Setup playlist toggle button
-		btnTogglePlaylist = new JToggleButton("P");
-		btnTogglePlaylist.setBounds(400, 150, 60, 40);
-		btnTogglePlaylist.addItemListener(new ItemListener() {
-			@Override
-			public void itemStateChanged(ItemEvent arg0) {
-				if (btnTogglePlaylist.isSelected()) {
-					playlistwindow.setLocation(YampMain.this.getX(), YampMain.this.getY()+250);
-					playlistwindow.setVisible(true);
-				} else {
-					playlistwindow.setVisible(false);
-				}
-				
-			}
-
-		});
-		add(btnTogglePlaylist);
+//		// Setup playlist toggle button
+//		btnTogglePlaylist = new JToggleButton("P");
+//		btnTogglePlaylist.setBounds(400, 150, 60, 40);
+//		btnTogglePlaylist.addItemListener(new ItemListener() {
+//			@Override
+//			public void itemStateChanged(ItemEvent arg0) {
+//				if (btnTogglePlaylist.isSelected()) {
+//					playlistwindow.setLocation(YampMain.this.getX(), YampMain.this.getY()+250);
+//					playlistwindow.setVisible(true);
+//				} else {
+//					playlistwindow.setVisible(false);
+//				}
+//				
+//			}
+//
+//		});
+//		add(btnTogglePlaylist);
 		
 
 	}

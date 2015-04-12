@@ -40,10 +40,19 @@ public class YampPlaylistWindow extends JFrame {
 	private JScrollPane scrollPane;
 	private JButton btnAppend;
 	private JButton btnRemove;
+	private JButton btnUp;
+	private JButton btnDown;
 	private JFileChooser fc;
+	private int mode = REPEATE_PLAYLIST;
+	private int currentSongIndex;
 	
 	// Reference to driver
 	private YampMain driver;
+	
+	// constant definition
+	public static final int REPEATE_PLAYLIST = 0;
+	public static final int REPEATE_ONE = 1;
+	public static final int SHUFFLE = 2;
 	
 	public YampPlaylistWindow(YampMain driver) {
 		super();
@@ -67,7 +76,7 @@ public class YampPlaylistWindow extends JFrame {
 				tablemodel.addRow(rowdata);
 			}
 		} else {
-			//        			System.out.println("Open command cancelled by user.");
+			// System.out.println("Open command cancelled by user.");
 		}
 	}
 	
@@ -165,6 +174,50 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	public File previous() {
+		if (mode == REPEATE_PLAYLIST) {
+			currentSongIndex = (currentSongIndex - 1 < 0)? 0 : currentSongIndex - 1;
+		} else if (mode == SHUFFLE) {
+			currentSongIndex = (int)(Math.random() * playlist.size());
+		}
+		table.setRowSelectionInterval(currentSongIndex, currentSongIndex);
+		return playlist.get(currentSongIndex).getFile();
+	}
+	
+	public File next() {
+		if (mode == REPEATE_PLAYLIST) {
+			currentSongIndex = (currentSongIndex + 1) % playlist.size();
+		} else if (mode == SHUFFLE) {
+			currentSongIndex = (int)(Math.random() * playlist.size());
+		}
+		table.setRowSelectionInterval(currentSongIndex, currentSongIndex);
+		return playlist.get(currentSongIndex).getFile();
+	}
+	
+	public void moveUP() {
+		
+	}
+	
+	public void moveDown() {
+		
+	}
+	
+	public void setCurrentSongIndex(int index) {
+		currentSongIndex = index;
+	}
+	
+	public void setPlayMode(int playmode) {
+		mode = playmode;
+	}
+		
+	public void debugPrint() {
+		System.out.println("**Playlist debug print**");
+		for (int i = 0; i < playlist.size(); i++) {
+			System.out.print(i+1 + "; ");
+			System.out.println(playlist.get(i).getMp3File().getFilename());
+		}
+	}
+	
 	public void initUI() {
 		setTitle("Playlist");
 		setSize(600, 400);
@@ -199,6 +252,7 @@ public class YampPlaylistWindow extends JFrame {
 					int row = table.rowAtPoint(e.getPoint());
 					if (row != -1) {
 						driver.loadOnDeck(playlist.get(row).getFile());
+						setCurrentSongIndex(row);
 					}
 
 				}
@@ -273,5 +327,25 @@ public class YampPlaylistWindow extends JFrame {
 			}
 		});
 		add(btnRemove);
+		
+//		// Setup down button
+//		btnUp = new JButton("Up");
+//		btnUp.setBounds(80, 365, 50, 25 );
+//		btnUp.addActionListener(new ActionListener() {
+//			@Override
+//			public void actionPerformed(ActionEvent arg0) {
+//				moveUp();
+//			}
+//		});
+//		
+//		// Setup up button
+//		btnDown = new JButton("Down");
+//		btnDown.setBounds(80, 365, 50, 25);
+//		btnDown.addActionListener(new ActionListener() {
+//			@Override
+//			public void actionPerformed(ActionEvent arg0) {
+//				moveDown();
+//			}
+//		});
 	}
 }
