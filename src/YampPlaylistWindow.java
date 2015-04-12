@@ -1,13 +1,19 @@
 import java.awt.Graphics;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -17,6 +23,8 @@ import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 
 import com.mpatric.mp3agic.ID3v2;
@@ -45,7 +53,7 @@ public class YampPlaylistWindow extends JFrame {
 		this.playlist = new ArrayList<YampPlaylistElement>();
 	}
 	
-	public void appendToPlaylist() {
+	public void append() {
 		// Allow multiple files to be selected
 		fc.setMultiSelectionEnabled(true);
 		int returnVal = fc.showOpenDialog(YampPlaylistWindow.this);
@@ -63,7 +71,7 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
-	public void removeSelections() {
+	public void remove() {
 		// Get user-selected rows from JTable
 		int[] selectedRows = table.getSelectedRows();
 		// Remove each row
@@ -80,7 +88,7 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
-	public void clearPlaylist() {
+	public void clear() {
 		for (int i = playlist.size()-1; i >= 0; i--) {
 			playlist.remove(i);
 		}
@@ -88,11 +96,79 @@ public class YampPlaylistWindow extends JFrame {
 			tablemodel.removeRow(i);
 		}
 	}
+
+	public void save() {
+		fc.setDialogTitle("Save Playlist");
+		fc.setFileFilter(new FileNameExtensionFilter("M3U File", "m3u"));
+		int returnVal = fc.showSaveDialog(YampPlaylistWindow.this);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			File file = new File(fc.getSelectedFile() + ".m3u");
+			try {
+				FileWriter fw = new FileWriter(file.getPath());
+				fw.write("#EXTM3U\n");
+				int i;
+				for (i = 0; i < playlist.size(); i++) {
+					fw.write("#EXTINF:" + playlist.get(i).getMp3File().getLengthInSeconds() 
+							+ "," + playlist.get(i).getID3v2Tag().getArtist() + " - " 
+							+ playlist.get(i).getID3v2Tag().getTitle() + "\n");
+					fw.write(playlist.get(i).getFile().getPath() + "\n");
+				}
+				fw.flush();
+				fw.close();
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
+		}
+
+	}
+
+	public void load() {
+		// Open File Chooser dialog for loading a playlist
+		fc.setDialogTitle("Load Playlist");
+		fc.setMultiSelectionEnabled(false);
+		int returnVal = fc.showOpenDialog(YampPlaylistWindow.this);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+			File selectedFile = fc.getSelectedFile();
+			try {
+                BufferedReader br = new BufferedReader(new FileReader(selectedFile));
+                String line = null;
+                clear();
+                while ((line = br.readLine()) != null) {
+                    if (line.trim().length() == 0) {
+                        continue;
+                    }
+                    //SONG INFO FROM M3U FILE
+                    if (line.startsWith("#")) {
+//                        if (line.toUpperCase().startsWith("#EXTINF")) {
+//                            int index = line.indexOf(",", 0);
+//                            if (index != -1) {
+//                                title = line.substring(index + 1, line.length());
+//                            }
+//                        }
+                    } //SONG FILE FROM M3U FILE
+                    else {
+                        String path = line;
+                        YampPlaylistElement pelement = new YampPlaylistElement(new File(path));
+                        playlist.add(pelement);
+                    }
+                }
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+			// Load file to listModel
+			for (int i=0; i < playlist.size(); i++) {
+				String[] rowdata ={String.valueOf(i+1), playlist.get(i).getID3v2Tag().getTitle(), playlist.get(i).getID3v2Tag().getArtist(), playlist.get(i).getID3v2Tag().getAlbum()};
+    			tablemodel.addRow(rowdata);
+			}
+		} else {
+			System.out.println("Open command cancelled by user.");
+		}
+	}
 	
 	public void initUI() {
 		setTitle("Playlist");
 		setSize(600, 400);
-	    setUndecorated(true);
+//	    setUndecorated(true);
 	    setLayout(null);
 	    
 		// Setup playlist table and model
@@ -120,13 +196,61 @@ public class YampPlaylistWindow extends JFrame {
 		table.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) {
-			        int row = table.rowAtPoint(e.getPoint());
-			        if (row != -1) {
-			        	driver.loadOnDeck(playlist.get(row).getFile());
-			        }
-			        
+					int row = table.rowAtPoint(e.getPoint());
+					if (row != -1) {
+						driver.loadOnDeck(playlist.get(row).getFile());
+					}
+
 				}
 			}
+		});
+		new FileDrop(table, new FileDrop.Listener() {
+			@Override
+			public void filesDropped(File[] files) {
+				for (File file : files) {
+					String extension = file.getName().substring(file.getName().lastIndexOf(".") + 1, file.getName().length());
+					if (extension.equals("mp3")) {
+						YampPlaylistElement pelement = new YampPlaylistElement(file);
+						playlist.add(pelement);
+						String[] rowdata = {String.format("%02d",playlist.size()), pelement.getID3v2Tag().getTitle(), pelement.getID3v2Tag().getArtist(), pelement.getID3v2Tag().getAlbum()};
+						tablemodel.addRow(rowdata);
+					}
+					if (extension.equals("m3u")) {
+						try {
+			                BufferedReader br = new BufferedReader(new FileReader(file));
+			                String line = null;
+			                clear();
+			                while ((line = br.readLine()) != null) {
+			                    if (line.trim().length() == 0) {
+			                        continue;
+			                    }
+			                    //SONG INFO FROM M3U FILE
+			                    if (line.startsWith("#")) {
+//			                        if (line.toUpperCase().startsWith("#EXTINF")) {
+//			                            int index = line.indexOf(",", 0);
+//			                            if (index != -1) {
+//			                                title = line.substring(index + 1, line.length());
+//			                            }
+//			                        }
+			                    } //SONG FILE FROM M3U FILE
+			                    else {
+			                        String path = line;
+			                        YampPlaylistElement pelement = new YampPlaylistElement(new File(path));
+			                        playlist.add(pelement);
+			                    }
+			                }
+			            } catch (IOException e1) {
+			                e1.printStackTrace();
+			            }
+						// Load file to listModel
+						for (int i=0; i < playlist.size(); i++) {
+							String[] rowdata ={String.valueOf(i+1), playlist.get(i).getID3v2Tag().getTitle(), playlist.get(i).getID3v2Tag().getArtist(), playlist.get(i).getID3v2Tag().getAlbum()};
+			    			tablemodel.addRow(rowdata);
+						}
+					}
+					
+				}
+			}		
 		});
 		add(scrollPane);
 
@@ -135,7 +259,7 @@ public class YampPlaylistWindow extends JFrame {
 		btnAppend.setBounds(10, 365, 50, 25);
 		btnAppend.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				appendToPlaylist();
+				append();
 			}
 		});
 		add(btnAppend);
@@ -145,7 +269,7 @@ public class YampPlaylistWindow extends JFrame {
 		btnRemove.setBounds(60, 365, 50, 25);
 		btnRemove.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				removeSelections();
+				remove();
 			}
 		});
 		add(btnRemove);
