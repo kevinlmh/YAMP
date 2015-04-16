@@ -17,6 +17,7 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.sound.sampled.SourceDataLine;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
@@ -62,6 +63,18 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private JFileChooser fc;
 	// Lyrics window
 	private YampLyricsWindow lyricswindow;
+	
+	// EXPERIMENTAL
+	// Visualizer
+	private SpectrumTimeAnalyzer visualizer;
+	// audioInfo
+	private Map audioInfo;
+	// Visualizer window
+	private JFrame visualizerwindow;
+	
+	// Equalizer
+	private YampEqualizer equalizer;
+	private JFrame equalizerwindow;
 	
 	
 	/* Fields of main window or player related stuff */
@@ -142,17 +155,15 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		// Initialize main window
+		// Initialize UI
 		initUI();
-		// Initialize playlist window
-		playlistwindow = new YampPlaylistWindow(YampMain.this);
-		
 	}
 
 	@Override
 	public void opened(Object stream, Map properties) {
 		// TODO Auto-generated method stub
 		System.out.println("opened : " + properties.toString());
+		audioInfo = properties;
 		duration = (int) ((Long) (properties.get("duration")) / 1000000);
 		totalBytes = (Integer) properties.get("mp3.length.bytes");
 		bytesPerSecond = (int) ((Integer) properties.get("mp3.framesize.bytes") * (Float) properties
@@ -170,6 +181,13 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		prbTime.setString(String.format("%-90s", String.format("%02d", position/60) + ":" + String.format("%02d", position%60)) 
 				+ String.format("%02d", (duration-position)/60) + ":" + String.format("%02d", (duration-position)%60));
 
+		// Visualizer
+		// EXPERIMENTAL
+		visualizer.writeDSP(pcmdata);
+		// Equalizer
+		if (properties.containsKey("mp3.equalizer"))
+			equalizer.setBands((float[]) properties.get("mp3.equalizer"));
+		
 	}
 
 	@Override
@@ -196,6 +214,12 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			prbTime.setValue(0);
 			prbTime.setString(String.format("%-90s", "00:00") + "00:00");
 			loadOnDeck(playlistwindow.next());
+		} else if (event.getCode() == BasicPlayerEvent.PLAYING) {
+			visualizer.setupDSP((SourceDataLine) audioInfo.get("basicplayer.sourcedataline"));
+            visualizer.startDSP((SourceDataLine) audioInfo.get("basicplayer.sourcedataline"));
+		} else if (event.getCode() == BasicPlayerEvent.STOPPED) {
+			visualizer.stopDSP();
+            visualizer.repaint();
 		}
 	}
 
@@ -346,6 +370,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				fc.setMultiSelectionEnabled(false);
 				int returnVal = fc.showOpenDialog(YampMain.this);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					playlistwindow.appendFile(fc.getSelectedFile());
 					loadOnDeck(fc.getSelectedFile());
 				} else {
 					// System.out.println("Open command cancelled by user.");
@@ -835,6 +860,25 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 //		});
 //		add(btnTogglePlaylist);
 		
+		// Initialize playlist window
+		playlistwindow = new YampPlaylistWindow(YampMain.this);
+		
+		// Try adding visualizer
+		// EXPERIMENTAL		
+		visualizer = new SpectrumTimeAnalyzer();
+		visualizerwindow = new JFrame("Visualizer");
+		visualizerwindow.setContentPane(visualizer);
+		visualizerwindow.setSize(400,200);
+		visualizerwindow.setLocationRelativeTo(null);
+		visualizerwindow.setVisible(true);
+		
+		// equalizer
+		equalizer  = new YampEqualizer();
+		equalizerwindow = new JFrame("Equalizer");
+		equalizerwindow.setContentPane(equalizer);
+		equalizerwindow.setSize(400,240);
+		equalizerwindow.setLocationRelativeTo(null);
+		equalizerwindow.setVisible(true);
 
 	}
 

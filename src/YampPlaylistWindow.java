@@ -81,6 +81,13 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	public void appendFile(File file) {
+		YampPlaylistElement pelement = new YampPlaylistElement(file);
+		playlist.add(pelement);
+		String[] rowdata = {String.format("%02d",playlist.size()), pelement.getID3v2Tag().getTitle(), pelement.getID3v2Tag().getArtist(), pelement.getID3v2Tag().getAlbum()};
+		tablemodel.addRow(rowdata);
+	}
+	
 	public void remove() {
 		// Get user-selected rows from JTable
 		int[] selectedRows = table.getSelectedRows();

@@ -12,5 +12,6 @@
 	<classpathentry kind="lib" path="/home/kevin/workspace/YAMP/lib/vorbisspi1.0.2.jar"/>
 	<classpathentry kind="lib" path="/home/kevin/workspace/YAMP/lib/mp3spi1.9.5.jar"/>
 	<classpathentry kind="lib" path="/home/kevin/workspace/YAMP/lib/mp3agic-0.8.4-SNAPSHOT.jar"/>
+	<classpathentry kind="lib" path="/home/kevin/workspace/YAMP/lib/kj_dsp1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
