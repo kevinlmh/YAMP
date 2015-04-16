@@ -32,7 +32,7 @@ public class YampAboutWindow extends JDialog {
 		lblYamp = new JLabel("YAMP");
 		lblYamp.setFont(new Font("Serif", Font.BOLD, 60));
 		lblYamp.setForeground(Color.ORANGE);
-		lblYamp.setBounds(150, 10, 250, 60);
+		lblYamp.setBounds(200, 10, 250, 60);
 		add(lblYamp);
 		
 //		// Setup paragraph label

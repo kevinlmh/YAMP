@@ -34,6 +34,7 @@ import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 
 import com.mpatric.mp3agic.ID3v2;
@@ -59,6 +60,8 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private YampPlaylistWindow playlistwindow;
 	// File chooser
 	private JFileChooser fc;
+	// Lyrics window
+	private YampLyricsWindow lyricswindow;
 	
 	
 	/* Fields of main window or player related stuff */
@@ -315,7 +318,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	 */
 	public void initUI() {
 		setTitle("Yamp Mp3 Player");
-		setSize(600, 250);
+		setSize(600, 260);
 		setResizable(false);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		// optional: this line set the window to the center of screen
@@ -352,6 +355,27 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mnFile.add(mntmOpen);
 
 		mntmOpenLyrics = new JMenuItem("Open Lyrics");
+		mntmOpenLyrics.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fc_temp = new JFileChooser();
+				fc_temp.addChoosableFileFilter(new FileNameExtensionFilter("LRC File","lrc"));
+				fc_temp.addChoosableFileFilter(new FileNameExtensionFilter("Text File","txt"));
+				fc_temp.setMultiSelectionEnabled(false);
+				int returnVal = fc_temp.showOpenDialog(YampMain.this);
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					File selectedFile = fc_temp.getSelectedFile();
+					String filename = selectedFile.getName();
+					// Get the extension of the file
+					String extension = filename.substring(filename.lastIndexOf(".") + 1, filename.length());
+					lyricswindow = new YampLyricsWindow();
+					lyricswindow.displayLyrics(selectedFile, extension);
+					lyricswindow.setVisible(true);
+				} 
+				else {
+					//	                System.out.println("Open command cancelled by user.");
+				}
+			}
+		});
 		mnFile.add(mntmOpenLyrics);
 
 		mntmFileInfo = new JMenuItem("File Info");

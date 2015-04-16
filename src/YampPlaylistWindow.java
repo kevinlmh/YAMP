@@ -59,6 +59,7 @@ public class YampPlaylistWindow extends JFrame {
 		initUI();
 		this.driver = driver;
 		this.fc = new JFileChooser();
+		fc.setFileFilter(new FileNameExtensionFilter("M3U File", "m3u"));
 		this.playlist = new ArrayList<YampPlaylistElement>();
 	}
 	
@@ -108,7 +109,6 @@ public class YampPlaylistWindow extends JFrame {
 
 	public void save() {
 		fc.setDialogTitle("Save Playlist");
-		fc.setFileFilter(new FileNameExtensionFilter("M3U File", "m3u"));
 		int returnVal = fc.showSaveDialog(YampPlaylistWindow.this);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			File file = new File(fc.getSelectedFile() + ".m3u");
@@ -220,7 +220,7 @@ public class YampPlaylistWindow extends JFrame {
 	
 	public void initUI() {
 		setTitle("Playlist");
-		setSize(600, 400);
+		setSize(600, 420);
 //	    setUndecorated(true);
 	    setLayout(null);
 	    
