@@ -201,12 +201,27 @@ public class YampPlaylistWindow extends JFrame {
 		return playlist.get(currentSongIndex).getFile();
 	}
 	
-	public void moveUP() {
-		
+	public void moveUp() {
+	    int[] selectedRows = table.getSelectedRows();
+	    for (int row : selectedRows) {
+	    	if (row != 0) {
+	    		tablemodel.moveRow(row, row, row-1);
+	    		table.removeRowSelectionInterval(row, row);
+	    		table.addRowSelectionInterval(row-1, row-1);
+	    	}
+	    }
 	}
 	
 	public void moveDown() {
-		
+	    int[] selectedRows = table.getSelectedRows();
+	    for (int i = selectedRows.length-1; i >=0; i--) {
+	    	int row = selectedRows[i];
+	    	if (row != tablemodel.getRowCount()-1) {
+	    		tablemodel.moveRow(row, row, row+1);
+	    		table.removeRowSelectionInterval(row, row);
+	    		table.addRowSelectionInterval(row+1, row+1);
+	    	}
+	    }	
 	}
 	
 	public void setCurrentSongIndex(int index) {
@@ -316,7 +331,8 @@ public class YampPlaylistWindow extends JFrame {
 		add(scrollPane);
 
 		// Setup Append Button
-		btnAppend = new JButton("+");
+		btnAppend = new JButton();
+		btnAppend.setIcon(new ImageIcon(getClass().getResource("res/add.png")));
 		btnAppend.setBounds(10, 365, 50, 25);
 		btnAppend.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -326,7 +342,8 @@ public class YampPlaylistWindow extends JFrame {
 		add(btnAppend);
 
 		//Setup Remove Button
-		btnRemove = new JButton("-");
+		btnRemove = new JButton();
+		btnRemove.setIcon(new ImageIcon(getClass().getResource("res/minus.png")));
 		btnRemove.setBounds(60, 365, 50, 25);
 		btnRemove.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -335,24 +352,28 @@ public class YampPlaylistWindow extends JFrame {
 		});
 		add(btnRemove);
 		
-//		// Setup down button
-//		btnUp = new JButton("Up");
-//		btnUp.setBounds(80, 365, 50, 25 );
-//		btnUp.addActionListener(new ActionListener() {
-//			@Override
-//			public void actionPerformed(ActionEvent arg0) {
-//				moveUp();
-//			}
-//		});
-//		
-//		// Setup up button
-//		btnDown = new JButton("Down");
-//		btnDown.setBounds(80, 365, 50, 25);
-//		btnDown.addActionListener(new ActionListener() {
-//			@Override
-//			public void actionPerformed(ActionEvent arg0) {
-//				moveDown();
-//			}
-//		});
+		// Setup up button
+		btnUp = new JButton();
+		btnUp.setIcon(new ImageIcon(getClass().getResource("res/up.png")));
+		btnUp.setBounds(480, 365, 50, 25 );
+		btnUp.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				moveUp();
+			}
+		});
+		add(btnUp);
+		
+		// Setup down button
+		btnDown = new JButton();
+		btnDown.setIcon(new ImageIcon(getClass().getResource("res/down.png")));
+		btnDown.setBounds(530, 365, 50, 25);
+		btnDown.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				moveDown();
+			}
+		});
+		add(btnDown);
 	}
 }

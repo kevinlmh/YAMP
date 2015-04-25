@@ -8,6 +8,8 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -55,38 +57,41 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private BasicPlayer player = null;
 	// BasicController module
 	private BasicController control = null;
+	// Mini Mode Window
+	private JFrame miniUI;
+	// File chooser
+	private JFileChooser fc;
 	// Info Window
 	private YampInfoWindow infowindow;
 	// Playlist window
 	private YampPlaylistWindow playlistwindow;
-	// File chooser
-	private JFileChooser fc;
 	// Lyrics window
 	private YampLyricsWindow lyricswindow;
-	
-	// EXPERIMENTAL
 	// Visualizer
 	private SpectrumTimeAnalyzer visualizer;
-	// audioInfo
-	private Map audioInfo;
 	// Visualizer window
 	private JFrame visualizerwindow;
-	
 	// Equalizer
 	private YampEqualizer equalizer;
+	// Euqalizer window
 	private JFrame equalizerwindow;
 	
 	
-	/* Fields of main window or player related stuff */
+	/* Information of current file */
 	// The current mp3 file
 	private Mp3File currentMp3File = null;
+	// audioInfo of current file
+	private Map audioInfo;
+	
 	private int currentState;
 	private int duration;
 	private int totalBytes;
 	private int bytesPerSecond;
 	private int headerPosition;
 	private int volumeLevel = 50;
+	
 	private boolean isMuted = false;
+	private boolean isMiniMode = false;
 
 	/* UI components of the main window */
 	/* Swing components declaration */
@@ -137,10 +142,23 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private JMenuItem mntmVisualizer;
 	private JMenuItem mntmEqualizer;
 	private JMenuItem mntmLyrics;
+	private JMenuItem mntmMiniMode;
 	private JMenu mnHelp;
 	private JMenuItem mntmWebsite;
 	private JMenuItem mntmAbout;
 	
+	/* Mini Mode Window components */
+	private JButton btnMiniPlay;
+	private JButton btnMiniNext;
+	private JButton btnMiniPrevious;
+	private JButton btnMiniStop;
+	private JButton btnMiniMute;
+	private JButton btnFull;
+	private JLabel lblMiniInfo;
+	private JLabel lblMiniTime;
+	private JLabel lblMiniVolume;
+	private JSlider sldMiniVolume;
+
 	
 	public YampMain() {
 		// Instantiate BasicPlayer.
@@ -155,7 +173,13 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		// Initialize UI
+		// Initialize file chooser
+		fc = new JFileChooser();
+		// Initialize visualizer
+		visualizer = new SpectrumTimeAnalyzer();
+		// Initialize equalizer
+		equalizer  = new YampEqualizer();
+		// Initialize main window UI
 		initUI();
 	}
 
@@ -180,9 +204,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		prbTime.setValue((int)(1000 * position / duration ));
 		prbTime.setString(String.format("%-90s", String.format("%02d", position/60) + ":" + String.format("%02d", position%60)) 
 				+ String.format("%02d", (duration-position)/60) + ":" + String.format("%02d", (duration-position)%60));
-
+		lblMiniTime.setText(String.format("%02d", position/60) + ":" + String.format("%02d", position%60) + "/-"
+				+ String.format("%02d", (duration-position)/60) + ":" + String.format("%02d", (duration-position)%60));
 		// Visualizer
-		// EXPERIMENTAL
 		visualizer.writeDSP(pcmdata);
 		// Equalizer
 		if (properties.containsKey("mp3.equalizer"))
@@ -210,9 +234,10 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 		if (event.getCode() == BasicPlayerEvent.EOM) {
 			btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
-			//		btnPlay.setIcon(new ImageIcon(getClass().getResource("/png/play.png")));
+			btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 			prbTime.setValue(0);
 			prbTime.setString(String.format("%-90s", "00:00") + "00:00");
+			lblMiniTime.setText("00:00/-00:00");
 			loadOnDeck(playlistwindow.next());
 		} else if (event.getCode() == BasicPlayerEvent.PLAYING) {
 			visualizer.setupDSP((SourceDataLine) audioInfo.get("basicplayer.sourcedataline"));
@@ -300,6 +325,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				lblTitle.setText("Title: " + id3v2Tag.getTitle());
 				lblArtist.setText("Artist: " + id3v2Tag.getArtist());
 				lblAlbum.setText("Album: " + id3v2Tag.getAlbum());
+				lblMiniInfo.setText(id3v2Tag.getArtist() + " - " + id3v2Tag.getTitle());
 				// Resize and display cover art
 				BufferedImage coverart = null;
 				coverart = ImageIO.read(new
@@ -322,18 +348,11 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 		// open the file in basicplayer
 		open(file);
-		// Append to playlist
-//		YampPlaylistElement pelement = new YampPlaylistElement(selectedFile);
-//		playlist.appendElement(pelement);
-//		String[] rowdata = {String.format("%02d",playlist.size()),
-//				pelement.getID3v2Tag().getTitle(),
-//				pelement.getID3v2Tag().getArtist(),
-//				pelement.getID3v2Tag().getAlbum()};
-//		tablemodel.addRow(rowdata);
 		// Play the song
 		play();
 		// Change play pause button icon and menu
 		btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+		btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
 		mntmPause.setText("Pause");
 	}
 	
@@ -353,8 +372,47 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		ImageIcon icon = new ImageIcon(getClass().getResource("/res/icon.png"));
 		setIconImage(icon.getImage());
 
-		// Initialize file chooser
-		fc = new JFileChooser();
+		
+		// Setup playlist window
+		playlistwindow = new YampPlaylistWindow(YampMain.this);
+		playlistwindow.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent e) {
+	            mntmPlaylist.setText("Show Playlist");
+	        }
+		});
+		
+		// Setup visualizer window
+		visualizerwindow = new JFrame("Visualizer");
+		visualizerwindow.setContentPane(visualizer);
+		visualizerwindow.setSize(400,200);
+		visualizerwindow.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent e) {
+	            mntmVisualizer.setText("Show Visualizer");
+	        }
+	    });
+	
+		// Setup equalizer window
+		equalizerwindow = new JFrame("Equalizer");
+		equalizerwindow.setContentPane(equalizer);
+		equalizerwindow.setSize(400,240);
+		equalizerwindow.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent event) {
+	            mntmEqualizer.setText("Show Equalizer");
+	        }
+	    });
+		
+		// Setup lyrics window
+		lyricswindow = new YampLyricsWindow();
+		lyricswindow.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent event) {
+	            mntmLyrics.setText("Show Lyrics");
+	        }
+	    });
+		
 
 		// Setup menu bar
 		menuBar = new JMenuBar();
@@ -392,9 +450,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 					String filename = selectedFile.getName();
 					// Get the extension of the file
 					String extension = filename.substring(filename.lastIndexOf(".") + 1, filename.length());
-					lyricswindow = new YampLyricsWindow();
 					lyricswindow.displayLyrics(selectedFile, extension);
 					lyricswindow.setVisible(true);
+					mntmLyrics.setText("Hide Lyrics");
 				} 
 				else {
 					//	                System.out.println("Open command cancelled by user.");
@@ -427,6 +485,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			public void actionPerformed(ActionEvent e) {
 				play();
 				btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+				btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
 				mntmPause.setText("Pause");
 			}
 		});
@@ -438,11 +497,13 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				if (currentState == BasicPlayerEvent.PLAYING | currentState == BasicPlayerEvent.RESUMED) {
 					pause();
 					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 					mntmPause.setText("Resume");
 				}
 				if (currentState == BasicPlayerEvent.PAUSED) {
 					resume();
 					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
 					mntmPause.setText("Pause");
 				}
 			}
@@ -454,9 +515,11 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			public void actionPerformed(ActionEvent e) {
 				stop();
 				btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+				btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 				mntmPause.setText("Pause");
 				prbTime.setValue(0);
 				prbTime.setString(String.format("%-90s", "00:00") + "00:00");
+				lblMiniTime.setText("00:00/-00:00");
 			}
 		});
 		mnControl.add(mntmStop);
@@ -487,11 +550,15 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				newVolume = (newVolume > 100)? 100: newVolume;
 				setVolume(newVolume);
 				sldVolume.setValue(newVolume);
+				sldMiniVolume.setValue(newVolume);
 				lblVolume.setText(Integer.toString(newVolume));
+				lblMiniVolume.setText(Integer.toString(newVolume));
 				if (newVolume == 0) {
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/mute.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/mute.png")));
 				} else {
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/volume.png")));
 				}
 			}
 		});
@@ -504,11 +571,15 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				newVolume = (newVolume < 0)? 0: newVolume;
 				setVolume(newVolume);
 				sldVolume.setValue(newVolume);
+				sldMiniVolume.setValue(newVolume);
 				lblVolume.setText(Integer.toString(newVolume));
+				lblMiniVolume.setText(Integer.toString(newVolume));
 				if (newVolume == 0) {
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/mute.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/mute.png")));
 				} else {
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/volume.png")));
 				}
 			}
 		});
@@ -520,7 +591,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				if (isMuted) {
 					setVolume(volumeLevel);
 					sldVolume.setValue(volumeLevel);
+					sldMiniVolume.setValue(volumeLevel);
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/volume.png")));
 					mntmMute.setText("Mute");
 					isMuted = false;
 				} else {
@@ -528,6 +601,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 					setVolume(0);
 					sldVolume.setValue(0);
 					btnMute.setIcon(new	ImageIcon(getClass().getResource("res/mute.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/mute.png")));
 					mntmMute.setText("Unmute");
 					isMuted = true;
 				}
@@ -630,7 +704,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 					playlistwindow.setVisible(false);
 					mntmPlaylist.setText("Show Playlist");
 				} else {
-					playlistwindow.setLocation(YampMain.this.getX(), YampMain.this.getY()+250);
+					playlistwindow.setLocation(YampMain.this.getX(), YampMain.this.getY()+260);
 					playlistwindow.setVisible(true);
 					mntmPlaylist.setText("Hide Playlist");
 				}
@@ -642,7 +716,14 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mntmVisualizer = new JMenuItem("Show Visualizer");
 		mntmVisualizer.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
+				if (visualizerwindow.isVisible()) {
+					visualizerwindow.setVisible(false);
+					mntmVisualizer.setText("Show Visualizer");
+				} else {
+					visualizerwindow.setLocation(YampMain.this.getX()-400, YampMain.this.getY());
+					visualizerwindow.setVisible(true);
+					mntmVisualizer.setText("Hide Visualizer");
+				}
 			}
 		});
 		mnView.add(mntmVisualizer);
@@ -650,7 +731,14 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mntmEqualizer = new JMenuItem("Show Equalizer");
 		mntmEqualizer.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
+				if (equalizerwindow.isVisible()) {
+					equalizerwindow.setVisible(false);
+					mntmEqualizer.setText("Show Equalizer");
+				} else {
+					equalizerwindow.setLocation(YampMain.this.getX()-400, YampMain.this.getY()+200);
+					equalizerwindow.setVisible(true);
+					mntmEqualizer.setText("Hide Equalizer");
+				}
 			}
 		});
 		mnView.add(mntmEqualizer);
@@ -658,10 +746,26 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mntmLyrics = new JMenuItem("Show Lyrics");
 		mntmLyrics.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+				if (lyricswindow.isVisible()) {
+					lyricswindow.setVisible(false);
+					mntmLyrics.setText("Show Lyrics");
+				} else {
+					lyricswindow.setLocation(YampMain.this.getX()+600, YampMain.this.getY());
+					lyricswindow.setVisible(true);
+					mntmLyrics.setText("Hide Lyrics");
+				}
 			}
 		});
 		mnView.add(mntmLyrics);
+		
+		mntmMiniMode = new JMenuItem("Mini Mode");
+		mntmMiniMode.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				YampMain.this.setVisible(false);
+				miniUI.setVisible(true);
+			}
+		});
+		mnView.add(mntmMiniMode);
 		
 		mnHelp= new JMenu("Help");
 		menuBar.add(mnHelp);
@@ -742,14 +846,17 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				if (currentState == BasicPlayerEvent.PLAYING | currentState	== BasicPlayerEvent.RESUMED) {
 					pause();
 					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 					mntmPause.setText("Resume");
 				} else if (currentState == BasicPlayerEvent.PAUSED) {
 					resume();
 					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
 					mntmPause.setText("Pause");
 				} else if (currentState == BasicPlayerEvent.STOPPED | currentState == BasicPlayerEvent.OPENED) {
 					play();
 					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
 					mntmPause.setText("Pause");
 				}
 			}
@@ -759,8 +866,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		// Setup next button
 		btnNext = new JButton();
 		btnNext.setBounds(110, 150, 40, 40);
-		btnNext.setIcon(new ImageIcon(getClass().getResource(
-				"/res/forward.png")));
+		btnNext.setIcon(new ImageIcon(getClass().getResource("/res/forward.png")));
 		btnNext.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				loadOnDeck(playlistwindow.next());
@@ -771,8 +877,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		// Setup previous button
 		btnPrevious = new JButton();
 		btnPrevious.setBounds(10, 150, 40, 40);
-		btnPrevious.setIcon(new ImageIcon(getClass().getResource(
-				"/res/rewind.png")));
+		btnPrevious.setIcon(new ImageIcon(getClass().getResource("/res/rewind.png")));
 		btnPrevious.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				loadOnDeck(playlistwindow.previous());
@@ -787,11 +892,12 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		btnStop.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				stop();
-				btnPlay.setIcon(new
-						ImageIcon(getClass().getResource("/res/play.png")));
+				btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+				btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 				mntmPause.setText("Pause");
 				prbTime.setValue(0);
 				prbTime.setString(String.format("%-90s", "00:00") + "00:00");
+				lblMiniTime.setText("00:00/-00:00");
 			}
 		});
 		add(btnStop);
@@ -805,14 +911,18 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				if (isMuted) {
 					setVolume(volumeLevel);
 					sldVolume.setValue(volumeLevel);
+					sldMiniVolume.setValue(volumeLevel);
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/volume.png")));
 					mntmMute.setText("Mute");
 					isMuted = false;
 				} else {
 					volumeLevel = sldVolume.getValue();
 					setVolume(0);
 					sldVolume.setValue(0);
+					sldMiniVolume.setValue(0);
 					btnMute.setIcon(new	ImageIcon(getClass().getResource("res/mute.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/mute.png")));
 					mntmMute.setText("Unmute");
 					isMuted = true;
 				}
@@ -832,11 +942,15 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		sldVolume.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				lblVolume.setText(Integer.toString(sldVolume.getValue()));
+				lblMiniVolume.setText(Integer.toString(sldVolume.getValue()));
+				sldMiniVolume.setValue(sldVolume.getValue());
 				setVolume(sldVolume.getValue());
 				if (sldVolume.getValue() == 0) {
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/mute.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/mute.png")));
 				} else {
 					btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/volume.png")));
 				}
 			}
 		});
@@ -860,26 +974,150 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 //		});
 //		add(btnTogglePlaylist);
 		
-		// Initialize playlist window
-		playlistwindow = new YampPlaylistWindow(YampMain.this);
-		
-		// Try adding visualizer
-		// EXPERIMENTAL		
-		visualizer = new SpectrumTimeAnalyzer();
-		visualizerwindow = new JFrame("Visualizer");
-		visualizerwindow.setContentPane(visualizer);
-		visualizerwindow.setSize(400,200);
-		visualizerwindow.setLocationRelativeTo(null);
-		visualizerwindow.setVisible(true);
-		
-		// equalizer
-		equalizer  = new YampEqualizer();
-		equalizerwindow = new JFrame("Equalizer");
-		equalizerwindow.setContentPane(equalizer);
-		equalizerwindow.setSize(400,240);
-		equalizerwindow.setLocationRelativeTo(null);
-		equalizerwindow.setVisible(true);
 
+		/* Setup Mini Mode Window */
+		miniUI = new JFrame("YAMP Mini");
+		miniUI.setSize(600, 85);
+		miniUI.setResizable(false);
+		miniUI.setLayout(null);
+		miniUI.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		miniUI.setLocationRelativeTo(null);
+		
+		btnMiniPlay = new JButton(new ImageIcon(getClass().getResource("res/play.png")));
+		btnMiniPlay.setBounds(50, 10, 40, 40);
+		btnMiniPlay.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (currentState == BasicPlayerEvent.PLAYING | currentState	== BasicPlayerEvent.RESUMED) {
+					pause();
+					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+					mntmPause.setText("Resume");
+				} else if (currentState == BasicPlayerEvent.PAUSED) {
+					resume();
+					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+					mntmPause.setText("Pause");
+				} else if (currentState == BasicPlayerEvent.STOPPED | currentState == BasicPlayerEvent.OPENED) {
+					play();
+					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
+					mntmPause.setText("Pause");
+				}
+			}
+		});
+		miniUI.add(btnMiniPlay);
+		
+
+		// Setup next button on mini window
+		btnMiniNext = new JButton(new ImageIcon(getClass().getResource("/res/forward.png")));
+		btnMiniNext.setBounds(90, 10, 40, 40);
+		btnMiniNext.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadOnDeck(playlistwindow.next());
+			}
+		});
+		miniUI.add(btnMiniNext);
+
+		// Setup previous button on mini window
+		btnMiniPrevious = new JButton(new ImageIcon(getClass().getResource("/res/rewind.png")));
+		btnMiniPrevious.setBounds(10, 10, 40, 40);
+		btnMiniPrevious.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				loadOnDeck(playlistwindow.previous());
+			}
+		});
+		miniUI.add(btnMiniPrevious);
+
+		// Setup stop button on mini mode window
+		btnMiniStop = new JButton(new ImageIcon(getClass().getResource("/res/stop.png")));
+		btnMiniStop.setBounds(130, 10, 40, 40);
+		btnMiniStop.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				stop();
+				btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+				btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
+				mntmPause.setText("Pause");
+				prbTime.setValue(0);
+				prbTime.setString(String.format("%-90s", "00:00") + "00:00");
+				lblMiniTime.setText("00:00/-00:00");
+			}
+		});
+		miniUI.add(btnMiniStop);
+
+		// Setup mute button on mini mode window
+		btnMiniMute = new JButton(new ImageIcon(getClass().getResource("res/volume.png")));
+		btnMiniMute.setBounds(170, 10, 40, 40);
+		btnMiniMute.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (isMuted) {
+					setVolume(volumeLevel);
+					sldVolume.setValue(volumeLevel);
+					sldMiniVolume.setValue(volumeLevel);
+					btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/volume.png")));
+					mntmMute.setText("Mute");
+					isMuted = false;
+				} else {
+					volumeLevel = sldVolume.getValue();
+					setVolume(0);
+					sldVolume.setValue(0);
+					btnMute.setIcon(new	ImageIcon(getClass().getResource("res/mute.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/mute.png")));
+					mntmMute.setText("Unmute");
+					isMuted = true;
+				}
+			}
+		});
+		miniUI.add(btnMiniMute);
+
+		// Setup volume label on mini mode window
+		lblMiniVolume = new JLabel("50");
+		lblMiniVolume.setBounds(215, 35, 25, 25);
+		miniUI.add(lblMiniVolume);
+
+		// Setup volume slider on mini mode window
+		sldMiniVolume = new JSlider();
+		sldMiniVolume = new JSlider(0, 100, 50);
+		sldMiniVolume.setBounds(240, 35, 100, 25);
+		sldMiniVolume.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent event) {
+				lblMiniVolume.setText(Integer.toString(sldMiniVolume.getValue()));
+				lblVolume.setText(Integer.toString(sldMiniVolume.getValue()));
+				sldVolume.setValue(sldMiniVolume.getValue());
+				setVolume(sldMiniVolume.getValue());
+				if (sldVolume.getValue() == 0) {
+					btnMute.setIcon(new ImageIcon(getClass().getResource("res/mute.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/mute.png")));
+				} else {
+					btnMute.setIcon(new ImageIcon(getClass().getResource("res/volume.png")));
+					btnMiniMute.setIcon(new ImageIcon(getClass().getResource("/res/volume.png")));
+				}
+			}
+		});
+		miniUI.add(sldMiniVolume);
+		
+		// Setup info label on mini mode window
+		lblMiniInfo = new JLabel("        -        ");
+		lblMiniInfo.setBounds(220, 10, 300, 25);
+		miniUI.add(lblMiniInfo);
+		
+		// Setup time label on mini mode window
+		lblMiniTime = new JLabel("00:00/-00:00");
+		lblMiniTime.setBounds(350, 35, 100, 25);
+		miniUI.add(lblMiniTime);
+		
+		//Setup return to full mode button on mini mode window
+		btnFull = new JButton("F");
+		btnFull.setBounds(530, 10, 60, 40);
+		btnFull.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				miniUI.setVisible(false);
+				YampMain.this.setVisible(true);
+			}
+		});
+		miniUI.add(btnFull);
+		
 	}
 
 	public static void main(String[] args) {

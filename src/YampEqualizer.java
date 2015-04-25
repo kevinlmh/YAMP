@@ -146,7 +146,6 @@ public class YampEqualizer extends JPanel {
 		}
 	}
 
-	
 	public void initUI() {
 		// Add sliders
 		for (int i = 0; i < sliders.length; i++) {
