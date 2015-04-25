@@ -211,6 +211,14 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		// Equalizer
 		if (properties.containsKey("mp3.equalizer"))
 			equalizer.setBands((float[]) properties.get("mp3.equalizer"));
+		// Lyrics synchonization
+		if (lyricswindow.getFormat() == YampLyricsWindow.FORMAT_LRC) {
+			if (lyricswindow.getHashMap().get((int)position) != null) {
+//				System.out.println(position + " yes");
+				lyricswindow.synchonizeLRC((int)position);
+//				System.out.println(lyricswindow.getHashMap().get((int)position));
+			}
+		}
 		
 	}
 
@@ -328,13 +336,14 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				lblMiniInfo.setText(id3v2Tag.getArtist() + " - " + id3v2Tag.getTitle());
 				// Resize and display cover art
 				BufferedImage coverart = null;
-				coverart = ImageIO.read(new
-						ByteArrayInputStream(id3v2Tag.getAlbumImage()));
-				BufferedImage resizedimage = new BufferedImage(120, 120, BufferedImage.TYPE_INT_RGB);
-				Graphics g = resizedimage.createGraphics();
-				g.drawImage(coverart, 0, 0, 120, 120, null);
-				g.dispose();
-				lblCoverArt.setIcon(new ImageIcon(resizedimage));
+				if (id3v2Tag.getAlbumImage() != null) {
+					coverart = ImageIO.read(new ByteArrayInputStream(id3v2Tag.getAlbumImage()));
+					BufferedImage resizedimage = new BufferedImage(120, 120, BufferedImage.TYPE_INT_RGB);
+					Graphics g = resizedimage.createGraphics();
+					g.drawImage(coverart, 0, 0, 120, 120, null);
+					g.dispose();
+					lblCoverArt.setIcon(new ImageIcon(resizedimage));
+				}	
 			}
 		} catch (UnsupportedTagException e1) {
 			// TODO Auto-generated catch block
