@@ -40,6 +40,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 
+import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.Mp3File;
@@ -341,7 +342,19 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 					g.drawImage(coverart, 0, 0, 120, 120, null);
 					g.dispose();
 					lblCoverArt.setIcon(new ImageIcon(resizedimage));
-				}	
+				} else {
+					// Display placeholder cover art
+					lblCoverArt.setIcon(new ImageIcon(getClass().getResource("res/placeholder120.png")));
+				}
+			} else if (currentMp3File.hasId3v1Tag()) {
+				ID3v1 id3v1Tag = currentMp3File.getId3v1Tag();
+				// Display title artist and album info in Dashboard labels
+				lblTitle.setText("Title: " + id3v1Tag.getTitle());
+				lblArtist.setText("Artist: " + id3v1Tag.getArtist());
+				lblAlbum.setText("Album: " + id3v1Tag.getAlbum());
+				lblMiniInfo.setText(id3v1Tag.getArtist() + " - " + id3v1Tag.getTitle());
+				// Display placeholder cover art
+				lblCoverArt.setIcon(new ImageIcon(getClass().getResource("res/placeholder120.png")));
 			}
 		} catch (UnsupportedTagException e1) {
 			// TODO Auto-generated catch block

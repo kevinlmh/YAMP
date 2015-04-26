@@ -15,6 +15,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
+import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.InvalidDataException;
 import com.mpatric.mp3agic.Mp3File;
@@ -164,23 +165,36 @@ public class YampInfoWindow extends JFrame {
 			txtTitle.setText(id3v2Tag.getTitle());
 			txtArtist.setText(id3v2Tag.getArtist());
 			txtAlbum.setText(id3v2Tag.getAlbum());
-			txtGenre.setText(id3v2Tag.getGenre() + " (" + id3v2Tag.getGenreDescription() + ")" );
+			txtGenre.setText(id3v2Tag.getGenreDescription());
 			txtTrack.setText(id3v2Tag.getTrack());
 			txtAlbumArtist.setText(id3v2Tag.getAlbumArtist());
 			txtEncoder.setText(id3v2Tag.getEncoder());
 			txtComment.setText(id3v2Tag.getEncoder());
 			BufferedImage coverart = null;
-			try {
-				coverart = ImageIO.read(new ByteArrayInputStream(id3v2Tag.getAlbumImage()));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+			if (id3v2Tag.getAlbumImage() != null) {
+				try {
+					coverart = ImageIO.read(new ByteArrayInputStream(id3v2Tag.getAlbumImage()));
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				BufferedImage resizedimage = new BufferedImage(250, 250, BufferedImage.TYPE_INT_RGB);
+				Graphics g = resizedimage.createGraphics();
+				g.drawImage(coverart, 0, 0, 250, 250, null);
+				g.dispose();
+				lblPic.setIcon(new ImageIcon(resizedimage));
+			} else {
+				lblPic.setIcon(new ImageIcon(getClass().getResource("res/placeholder250.png")));
 			}
-			BufferedImage resizedimage = new BufferedImage(250, 250, BufferedImage.TYPE_INT_RGB);
-			Graphics g = resizedimage.createGraphics();
-			g.drawImage(coverart, 0, 0, 250, 250, null);
-			g.dispose();
-			lblPic.setIcon(new ImageIcon(resizedimage));
+			
+		} else if (mp3file.hasId3v1Tag()) {
+			ID3v1 id3v1Tag = mp3file.getId3v2Tag();
+			txtTitle.setText(id3v1Tag.getTitle());
+			txtArtist.setText(id3v1Tag.getArtist());
+			txtAlbum.setText(id3v1Tag.getAlbum());
+			txtGenre.setText(id3v1Tag.getGenreDescription());
+			txtTrack.setText(id3v1Tag.getTrack());
+			lblPic.setIcon(new ImageIcon(getClass().getResource("res/placeholder250.png")));
 		}
 	}
 
