@@ -13,6 +13,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -58,12 +59,13 @@ public class YampPlaylistWindow extends JFrame {
 		super();
 		initUI();
 		this.driver = driver;
-		this.fc = new JFileChooser();
-		fc.setFileFilter(new FileNameExtensionFilter("M3U File", "m3u"));
 		this.playlist = new ArrayList<YampPlaylistElement>();
 	}
 	
 	public void append() {
+		this.fc = new JFileChooser();
+		fc.setDialogTitle("Add to Playlist");
+		fc.setFileFilter(new FileNameExtensionFilter("MP3 File", "mp3"));
 		// Allow multiple files to be selected
 		fc.setMultiSelectionEnabled(true);
 		int returnVal = fc.showOpenDialog(YampPlaylistWindow.this);
@@ -115,7 +117,9 @@ public class YampPlaylistWindow extends JFrame {
 	}
 
 	public void save() {
+		this.fc = new JFileChooser();
 		fc.setDialogTitle("Save Playlist");
+		fc.setFileFilter(new FileNameExtensionFilter("M3U File", "m3u"));
 		int returnVal = fc.showSaveDialog(YampPlaylistWindow.this);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			File file = new File(fc.getSelectedFile() + ".m3u");
@@ -139,9 +143,11 @@ public class YampPlaylistWindow extends JFrame {
 	}
 
 	public void load() {
+		this.fc = new JFileChooser();
 		// Open File Chooser dialog for loading a playlist
 		fc.setDialogTitle("Load Playlist");
 		fc.setMultiSelectionEnabled(false);
+		fc.setFileFilter(new FileNameExtensionFilter("M3U File", "m3u"));
 		int returnVal = fc.showOpenDialog(YampPlaylistWindow.this);
 		if (returnVal == JFileChooser.APPROVE_OPTION) {
 			File selectedFile = fc.getSelectedFile();
@@ -173,7 +179,7 @@ public class YampPlaylistWindow extends JFrame {
             }
 			// Load file to listModel
 			for (int i=0; i < playlist.size(); i++) {
-				String[] rowdata ={String.valueOf(i+1), playlist.get(i).getID3v2Tag().getTitle(), playlist.get(i).getID3v2Tag().getArtist(), playlist.get(i).getID3v2Tag().getAlbum()};
+				String[] rowdata ={String.format("%02d", i+1), playlist.get(i).getID3v2Tag().getTitle(), playlist.get(i).getID3v2Tag().getArtist(), playlist.get(i).getID3v2Tag().getAlbum()};
     			tablemodel.addRow(rowdata);
 			}
 		} else {
@@ -208,8 +214,16 @@ public class YampPlaylistWindow extends JFrame {
 	    		tablemodel.moveRow(row, row, row-1);
 	    		table.removeRowSelectionInterval(row, row);
 	    		table.addRowSelectionInterval(row-1, row-1);
+	    		// reorder files in playlist data structure
+	    		Collections.swap(playlist, row, row-1);	
+	    		// update indices
+	    		for (int j = 0; j < playlist.size(); j++) {
+	    			tablemodel.setValueAt(String.format("%02d", j+1), j, 0);
+	    		}
 	    	}
 	    }
+	    
+	    // TODO: update indices
 	}
 	
 	public void moveDown() {
@@ -220,8 +234,17 @@ public class YampPlaylistWindow extends JFrame {
 	    		tablemodel.moveRow(row, row, row+1);
 	    		table.removeRowSelectionInterval(row, row);
 	    		table.addRowSelectionInterval(row+1, row+1);
+	    		// reorder files in playlist data structure
+	    		Collections.swap(playlist, row, row+1);	
+	    		// update indices
+	    		for (int j = 0; j < playlist.size(); j++) {
+	    			tablemodel.setValueAt(String.format("%02d", j+1), j, 0);
+	    		}
 	    	}
-	    }	
+	    }
+	    // TODO: reorder files in data structure
+	    
+	    // TODO: update indices
 	}
 	
 	public void setCurrentSongIndex(int index) {
@@ -243,7 +266,7 @@ public class YampPlaylistWindow extends JFrame {
 	public void initUI() {
 		setTitle("Playlist");
 		setSize(600, 420);
-//	    setUndecorated(true);
+		setResizable(false);
 	    setLayout(null);
 	    
 		// Setup playlist table and model

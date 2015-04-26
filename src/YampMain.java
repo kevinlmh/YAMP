@@ -173,8 +173,6 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		// Initialize file chooser
-		fc = new JFileChooser();
 		// Initialize visualizer
 		visualizer = new SpectrumTimeAnalyzer();
 		// Initialize equalizer
@@ -357,6 +355,10 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 		// open the file in basicplayer
 		open(file);
+		// Change the duration label
+		prbTime.setString(String.format("%-90s", "00:00")
+						+ String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
+		lblMiniTime.setText("00:00/-" + String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
 		// Play the song
 		play();
 		// Change play pause button icon and menu
@@ -395,6 +397,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		visualizerwindow = new JFrame("Visualizer");
 		visualizerwindow.setContentPane(visualizer);
 		visualizerwindow.setSize(400,200);
+		visualizerwindow.setResizable(false);
 		visualizerwindow.addWindowListener(new WindowAdapter() {
 	        @Override
 	        public void windowClosing(WindowEvent e) {
@@ -406,6 +409,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		equalizerwindow = new JFrame("Equalizer");
 		equalizerwindow.setContentPane(equalizer);
 		equalizerwindow.setSize(400,240);
+		equalizerwindow.setResizable(false);
 		equalizerwindow.addWindowListener(new WindowAdapter() {
 	        @Override
 	        public void windowClosing(WindowEvent event) {
@@ -433,6 +437,8 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mntmOpen = new JMenuItem("Open");
 		mntmOpen.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				fc = new JFileChooser();
+				fc.setFileFilter(new FileNameExtensionFilter("MP3 File", "mp3"));
 				// when open button is clicked open a file chooser dialog
 				fc.setMultiSelectionEnabled(false);
 				int returnVal = fc.showOpenDialog(YampMain.this);
@@ -449,13 +455,13 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		mntmOpenLyrics = new JMenuItem("Open Lyrics");
 		mntmOpenLyrics.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				JFileChooser fc_temp = new JFileChooser();
-				fc_temp.addChoosableFileFilter(new FileNameExtensionFilter("LRC File","lrc"));
-				fc_temp.addChoosableFileFilter(new FileNameExtensionFilter("Text File","txt"));
-				fc_temp.setMultiSelectionEnabled(false);
-				int returnVal = fc_temp.showOpenDialog(YampMain.this);
+				fc = new JFileChooser();
+				fc.setFileFilter(new FileNameExtensionFilter("LRC File", "lrc"));
+				fc.addChoosableFileFilter(new FileNameExtensionFilter("Text File","txt"));
+				fc.setMultiSelectionEnabled(false);
+				int returnVal = fc.showOpenDialog(YampMain.this);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
-					File selectedFile = fc_temp.getSelectedFile();
+					File selectedFile = fc.getSelectedFile();
 					String filename = selectedFile.getName();
 					// Get the extension of the file
 					String extension = filename.substring(filename.lastIndexOf(".") + 1, filename.length());
@@ -527,8 +533,10 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 				mntmPause.setText("Pause");
 				prbTime.setValue(0);
-				prbTime.setString(String.format("%-90s", "00:00") + "00:00");
-				lblMiniTime.setText("00:00/-00:00");
+				// Change the duration label
+				prbTime.setString(String.format("%-90s", "00:00")
+								+ String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
+				lblMiniTime.setText("00:00/-" + String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
 			}
 		});
 		mnControl.add(mntmStop);
@@ -905,8 +913,10 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 				mntmPause.setText("Pause");
 				prbTime.setValue(0);
-				prbTime.setString(String.format("%-90s", "00:00") + "00:00");
-				lblMiniTime.setText("00:00/-00:00");
+				// Change the duration label
+				prbTime.setString(String.format("%-90s", "00:00")
+								+ String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
+				lblMiniTime.setText("00:00/-" + String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
 			}
 		});
 		add(btnStop);
@@ -1047,8 +1057,10 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 				mntmPause.setText("Pause");
 				prbTime.setValue(0);
-				prbTime.setString(String.format("%-90s", "00:00") + "00:00");
-				lblMiniTime.setText("00:00/-00:00");
+				// Change the duration label
+				prbTime.setString(String.format("%-90s", "00:00")
+								+ String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
+				lblMiniTime.setText("00:00/-" + String.format("%02d", duration/60) + ":" + String.format("%02d", duration%60));
 			}
 		});
 		miniUI.add(btnMiniStop);
@@ -1081,13 +1093,13 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 
 		// Setup volume label on mini mode window
 		lblMiniVolume = new JLabel("50");
-		lblMiniVolume.setBounds(215, 35, 25, 25);
+		lblMiniVolume.setBounds(220, 35, 25, 25);
 		miniUI.add(lblMiniVolume);
 
 		// Setup volume slider on mini mode window
 		sldMiniVolume = new JSlider();
 		sldMiniVolume = new JSlider(0, 100, 50);
-		sldMiniVolume.setBounds(240, 35, 100, 25);
+		sldMiniVolume.setBounds(250, 35, 100, 25);
 		sldMiniVolume.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent event) {
 				lblMiniVolume.setText(Integer.toString(sldMiniVolume.getValue()));
@@ -1106,18 +1118,18 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		miniUI.add(sldMiniVolume);
 		
 		// Setup info label on mini mode window
-		lblMiniInfo = new JLabel("        -        ");
-		lblMiniInfo.setBounds(220, 10, 300, 25);
+		lblMiniInfo = new JLabel();
+		lblMiniInfo.setBounds(220, 10, 320, 25);
 		miniUI.add(lblMiniInfo);
 		
 		// Setup time label on mini mode window
 		lblMiniTime = new JLabel("00:00/-00:00");
-		lblMiniTime.setBounds(350, 35, 100, 25);
+		lblMiniTime.setBounds(380, 35, 100, 25);
 		miniUI.add(lblMiniTime);
 		
 		//Setup return to full mode button on mini mode window
-		btnFull = new JButton("F");
-		btnFull.setBounds(530, 10, 60, 40);
+		btnFull = new JButton(new ImageIcon(getClass().getResource("res/expand.png")));
+		btnFull.setBounds(540, 10, 40, 40);
 		btnFull.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
