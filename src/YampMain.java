@@ -514,8 +514,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 					mntmPause.setText("Resume");
-				}
-				if (currentState == BasicPlayerEvent.PAUSED) {
+				} else if (currentState == BasicPlayerEvent.PAUSED) {
 					resume();
 					btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
 					btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/pause.png")));
