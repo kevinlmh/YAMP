@@ -226,7 +226,8 @@ public class YampPlaylistWindow extends JFrame {
 	}
 	
 	/**
-	 * Play the previous song in the playlist
+	 * Return the previous song in the playlist
+	 * @return file Previous song
 	 */
 	public File previous() {
 		if (mode == REPEATE_PLAYLIST) {
@@ -239,7 +240,8 @@ public class YampPlaylistWindow extends JFrame {
 	}
 	
 	/**
-	 * Play the next song in the playlist
+	 * Return the next song in the playlist
+	 * @return file Next song
 	 */
 	public File next() {
 		if (mode == REPEATE_PLAYLIST) {
