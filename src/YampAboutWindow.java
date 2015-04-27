@@ -1,16 +1,32 @@
-import java.awt.Color;
+/**
+ * Copyright (C) 2015 YAMP Team
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+    USA
+ */
+
 import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.net.URI;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
@@ -24,14 +40,19 @@ public class YampAboutWindow extends JFrame {
 	private JLabel lblVersion;
 	private JLabel lblText;
 	private JLabel lblLink;
-	private JButton btnLink;
 	private JButton btnLicense;
 	private JButton btnDonate;
 	
+	/**
+	 * Constructor
+	 */
 	public YampAboutWindow() {
 		initUI();
 	}
 	
+	/**
+	 * Initializer GUI
+	 */
 	public void initUI() {
 		setTitle("About YAMP");
 		setSize(400, 300);
@@ -59,39 +80,14 @@ public class YampAboutWindow extends JFrame {
 		add(lblVersion);
 		
 		// Setup text label
-//		lblText = new JLabel("<html>" + "<p><center>Version 1.0</center></p>"
-//							+ "<p><center>A simple and light-weight cross-platform music player</center></p>"
-//							+ "<p><center>Cpoyright &copy; 2015 YAMP Team"
-//							+ "<p><center><a href=\"http://kevinlmh.github.io/YAMP/\">http://kevinlmh.github.io/YAMP/</a></center></p>"
-//							+ "</html>");
+		// Use HTML to format display
 		lblText = new JLabel("<html><center><p>A simple and light-weight cross-platform MP3 player</p>"
 						+ "<p>Copyright &copy; 2015 YAMP Team"
 						+ "</center></html>");
 		lblText.setFont(new Font("Serif", Font.PLAIN, 16));
 		lblText.setVerticalAlignment(JLabel.TOP);
-//		lblText.setHorizontalAlignment(JLabel.CENTER);
 		lblText.setBounds(10, 130, 380, 60);
 		add(lblText);
-		
-//		// Button version
-//		btnLink = new JButton("<html><center><p><a href=\"http://kevinlmh.github.io/YAMP/\">http://kevinlmh.github.io/YAMP</a></p></center></html>");
-//	    btnLink.setBorderPainted(false);
-//	    btnLink.setOpaque(false);
-//	    btnLink.setBackground(Color.WHITE);
-//	    btnLink.setBounds(70, 190, 270, 20);
-//	    btnLink.addActionListener(new ActionListener() {
-//	    	public void actionPerformed(ActionEvent e) {
-//	    		Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
-//			    if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
-//			        try {
-//			            desktop.browse(new URI("http://kevinlmh.github.io/YAMP"));
-//			        } catch (Exception e1) {
-//			            e1.printStackTrace();
-//			        }
-//			    }
-//	    	}
-//	    });
-//		add(btnLink);
 		
 		// Setup link label
 		lblLink = new JLabel("<html><center><p><a href=\"http://kevinlmh.github.io/YAMP/\">http://kevinlmh.github.io/YAMP</a></p></center></html>");
@@ -112,7 +108,7 @@ public class YampAboutWindow extends JFrame {
 		});
 		add(lblLink);
 		
-		// Setup licence button
+		// Setup license button
 		btnLicense = new JButton("License");
 		btnLicense.setBounds(10, 230, 100, 30);
 		btnLicense.addActionListener(new ActionListener() {

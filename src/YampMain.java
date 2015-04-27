@@ -1,11 +1,26 @@
+/**
+ *  Copyright (C) 2015 YAMP Team
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+    USA
+ */
+
 import java.awt.Desktop;
 import java.awt.Graphics;
-import java.awt.GraphicsConfiguration;
-import java.awt.HeadlessException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -15,7 +30,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
@@ -30,16 +44,10 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JProgressBar;
-import javax.swing.JScrollPane;
 import javax.swing.JSlider;
-import javax.swing.JTable;
-import javax.swing.JToggleButton;
-import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.table.DefaultTableModel;
-
 import com.mpatric.mp3agic.ID3v1;
 import com.mpatric.mp3agic.ID3v2;
 import com.mpatric.mp3agic.InvalidDataException;
@@ -53,7 +61,7 @@ import javazoom.jlgui.basicplayer.BasicPlayerException;
 import javazoom.jlgui.basicplayer.BasicPlayerListener;
 
 public class YampMain extends JFrame implements BasicPlayerListener {
-	/* All the modules */
+	/* Modules */
 	// BasicPlayer module
 	private BasicPlayer player = null;
 	// BasicController module
@@ -83,16 +91,20 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private Mp3File currentMp3File = null;
 	// audioInfo of current file
 	private Map audioInfo;
-	
+	// Current state of the music player
 	private int currentState;
+	// Duration of current song
 	private int duration;
+	// Length in bytes of current song
 	private int totalBytes;
+	// Bytes per second
 	private int bytesPerSecond;
+	// Start of mp3 header
 	private int headerPosition;
+	// Current volume level
 	private int volumeLevel = 50;
-	
+	// Is the player muted
 	private boolean isMuted = false;
-	private boolean isMiniMode = false;
 
 	/* UI components of the main window */
 	/* Swing components declaration */
@@ -101,8 +113,6 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private JButton btnPrevious;
 	private JButton btnStop;
 	private JButton btnMute;
-	private JToggleButton btnTogglePlaylist;
-	private JToggleButton btnToggleLyrics;
 	private JLabel lblTitle;
 	private JLabel lblArtist;
 	private JLabel lblAlbum;
@@ -160,7 +170,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 	private JLabel lblMiniVolume;
 	private JSlider sldMiniVolume;
 
-	
+	/* Constructor */
 	public YampMain() {
 		// Instantiate BasicPlayer.
 		player = new BasicPlayer();
@@ -184,8 +194,8 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 
 	@Override
 	public void opened(Object stream, Map properties) {
-		// TODO Auto-generated method stub
-		System.out.println("opened : " + properties.toString());
+//		System.out.println("opened : " + properties.toString());
+		// Save audo file properties
 		audioInfo = properties;
 		duration = (int) ((Long) (properties.get("duration")) / 1000000);
 		totalBytes = (Integer) properties.get("mp3.length.bytes");
@@ -196,7 +206,6 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 
 	@Override
 	public void progress(int bytesread, long microseconds, byte[] pcmdata, Map properties) {
-		// TODO Auto-generated method stub
 //		System.out.println("progress : " + properties.toString());
 		// Update progress bar and time display
 		long position = (Long)properties.get("mp3.position.microseconds") / 1000000;
@@ -205,17 +214,15 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				+ String.format("%02d", (duration-position)/60) + ":" + String.format("%02d", (duration-position)%60));
 		lblMiniTime.setText(String.format("%02d", position/60) + ":" + String.format("%02d", position%60) + "/-"
 				+ String.format("%02d", (duration-position)/60) + ":" + String.format("%02d", (duration-position)%60));
-		// Visualizer
+		// Write DSP data array to visualizer
 		visualizer.writeDSP(pcmdata);
-		// Equalizer
+		// Send bands to Equalizer
 		if (properties.containsKey("mp3.equalizer"))
 			equalizer.setBands((float[]) properties.get("mp3.equalizer"));
 		// Lyrics synchonization
 		if (lyricswindow.getFormat() == YampLyricsWindow.FORMAT_LRC) {
 			if (lyricswindow.getHashMap().get((int)position) != null) {
-//				System.out.println(position + " yes");
 				lyricswindow.synchonizeLRC((int)position);
-//				System.out.println(lyricswindow.getHashMap().get((int)position));
 			}
 		}
 		
@@ -223,15 +230,13 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 
 	@Override
 	public void setController(BasicController controller) {
-		// TODO Auto-generated method stub
-		System.out.println("setController : " + controller);
-
+//		System.out.println("setController : " + controller);
 	}
 
 	@Override
 	public void stateUpdated(BasicPlayerEvent event) {
-		// TODO Auto-generated method stub
-		System.out.println("stateUpdated : " + event.toString());
+//		System.out.println("stateUpdated : " + event.toString());
+		// Ignore state changes caused by chaning gain, pan, opening and seeking file
 		if (event.getCode() != BasicPlayerEvent.GAIN
 				| event.getCode() != BasicPlayerEvent.PAN
 				| event.getCode() != BasicPlayerEvent.OPENING
@@ -239,22 +244,32 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 				| event.getCode() != BasicPlayerEvent.UNKNOWN) {
 			currentState = event.getCode();
 		}
+		// If end of music file is reached
 		if (event.getCode() == BasicPlayerEvent.EOM) {
+			// Change icons and texts of related GUI elements
 			btnPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 			btnMiniPlay.setIcon(new ImageIcon(getClass().getResource("/res/play.png")));
 			prbTime.setValue(0);
 			prbTime.setString(String.format("%-90s", "00:00") + "00:00");
 			lblMiniTime.setText("00:00/-00:00");
+			// Load next song
 			loadOnDeck(playlistwindow.next());
 		} else if (event.getCode() == BasicPlayerEvent.PLAYING) {
+			// Start visualizer
 			visualizer.setupDSP((SourceDataLine) audioInfo.get("basicplayer.sourcedataline"));
             visualizer.startDSP((SourceDataLine) audioInfo.get("basicplayer.sourcedataline"));
 		} else if (event.getCode() == BasicPlayerEvent.STOPPED) {
+			// Stop visualizer
 			visualizer.stopDSP();
             visualizer.repaint();
 		}
 	}
 
+	/**
+	 * Open a music file
+	 * 
+	 * @param file MP3 file to open
+	 */
 	public void open(File file) {
 		try {
 			control.open(file);
@@ -264,6 +279,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 
+	/**
+	 * Play the opened file
+	 */
 	public void play() {
 		try {
 			control.play();
@@ -272,6 +290,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 
+	/**
+	 * Stop the opened file
+	 */
 	public void stop() {
 		try {
 			control.stop();
@@ -281,6 +302,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 
+	/**
+	 * Pause the music file
+	 */
 	public void pause() {
 		try {
 			control.pause();
@@ -290,6 +314,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 
+	/**
+	 * Resume music playback
+	 */
 	public void resume() {
 		try {
 			control.resume();
@@ -298,6 +325,11 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 	
+	/**
+	 * Jump to a specific time of the music file
+	 * 
+	 * @param seconds time to jump to
+	 */
 	public void seek(int seconds) {
 		try {
 			control.seek(headerPosition + bytesPerSecond * seconds);
@@ -307,6 +339,10 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 	
+	/**
+	 * Set volume (0 to 100)
+	 * @param percentage a value between 0 and 100
+	 */
 	public void setVolume(int percentage) {
 		try {
 			control.setGain((double) percentage / 100.0);
@@ -315,6 +351,9 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 	
+	/**
+	 * Display file information in file info window
+	 */
 	public void displayInfo() {
 		if (currentMp3File != null) {
 			infowindow = new YampInfoWindow(currentMp3File.getFilename());
@@ -322,6 +361,11 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		}
 	}
 	
+	/**
+	 * Load a song, display its info album artwork in dashboard and start playback
+	 * 
+	 * @param file MP3 file to load
+	 */
 	public void loadOnDeck(File file) {
 		try {
 			currentMp3File = new Mp3File(file.getPath());
@@ -443,7 +487,8 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		// Setup menu bar
 		menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
-
+		
+		// Setup File menu
 		mnFile = new JMenu("File");
 		menuBar.add(mnFile);
 
@@ -505,6 +550,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		mnFile.add(mntmQuit);
 
+		// Setup Control menu
 		mnControl = new JMenu("Control");
 		menuBar.add(mnControl);
 
@@ -569,6 +615,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		mnControl.add(mntmNext);
 		
+		// Setup Volume menu
 		mnVolume = new JMenu("Volume");
 		menuBar.add(mnVolume);
 		
@@ -638,6 +685,8 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		mnVolume.add(mntmMute);
 		
+		
+		// Setup Play Mode menu
 		mnMode = new JMenu("Play Mode");
 		menuBar.add(mnMode);
 		
@@ -679,6 +728,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		mnMode.add(mntmShuffle);	
 
+		// Setup Playlist menu
 		mnPlaylist = new JMenu("Playlist");
 		menuBar.add(mnPlaylist);
 
@@ -723,6 +773,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		mnPlaylist.add(mntmLoadPlaylist);
 		
+		// Setup View menu
 		mnView = new JMenu("View");
 		menuBar.add(mnView);
 		
@@ -796,6 +847,7 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 		});
 		mnView.add(mntmMiniMode);
 		
+		// Setup Help menu
 		mnHelp= new JMenu("Help");
 		menuBar.add(mnHelp);
 		
@@ -822,7 +874,6 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			}
 		});
 		mnHelp.add(mntmAbout);
-		
 		
 
 		// Setup title label
@@ -986,25 +1037,6 @@ public class YampMain extends JFrame implements BasicPlayerListener {
 			}
 		});
 		add(sldVolume);
-		
-//		// Setup playlist toggle button
-//		btnTogglePlaylist = new JToggleButton("P");
-//		btnTogglePlaylist.setBounds(400, 150, 60, 40);
-//		btnTogglePlaylist.addItemListener(new ItemListener() {
-//			@Override
-//			public void itemStateChanged(ItemEvent arg0) {
-//				if (btnTogglePlaylist.isSelected()) {
-//					playlistwindow.setLocation(YampMain.this.getX(), YampMain.this.getY()+250);
-//					playlistwindow.setVisible(true);
-//				} else {
-//					playlistwindow.setVisible(false);
-//				}
-//				
-//			}
-//
-//		});
-//		add(btnTogglePlaylist);
-		
 
 		/* Setup Mini Mode Window */
 		miniUI = new JFrame("YAMP Mini");

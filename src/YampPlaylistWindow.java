@@ -216,14 +216,12 @@ public class YampPlaylistWindow extends JFrame {
 	    		table.addRowSelectionInterval(row-1, row-1);
 	    		// reorder files in playlist data structure
 	    		Collections.swap(playlist, row, row-1);	
-	    		// update indices
-	    		for (int j = 0; j < playlist.size(); j++) {
-	    			tablemodel.setValueAt(String.format("%02d", j+1), j, 0);
-	    		}
 	    	}
 	    }
-	    
-	    // TODO: update indices
+		// update indices
+		for (int j = 0; j < playlist.size(); j++) {
+			tablemodel.setValueAt(String.format("%02d", j+1), j, 0);
+		}
 	}
 	
 	public void moveDown() {
@@ -236,15 +234,12 @@ public class YampPlaylistWindow extends JFrame {
 	    		table.addRowSelectionInterval(row+1, row+1);
 	    		// reorder files in playlist data structure
 	    		Collections.swap(playlist, row, row+1);	
-	    		// update indices
-	    		for (int j = 0; j < playlist.size(); j++) {
-	    			tablemodel.setValueAt(String.format("%02d", j+1), j, 0);
-	    		}
 	    	}
 	    }
-	    // TODO: reorder files in data structure
-	    
-	    // TODO: update indices
+		// update indices
+		for (int j = 0; j < playlist.size(); j++) {
+			tablemodel.setValueAt(String.format("%02d", j+1), j, 0);
+		}
 	}
 	
 	public void setCurrentSongIndex(int index) {
