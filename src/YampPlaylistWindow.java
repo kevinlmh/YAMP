@@ -70,6 +70,10 @@ public class YampPlaylistWindow extends JFrame {
 	public static final int REPEATE_ONE = 1;
 	public static final int SHUFFLE = 2;
 	
+	/**
+	 * Constructor
+	 * @param driver Yamp's driver
+	 */
 	public YampPlaylistWindow(YampMain driver) {
 		super();
 		initUI();
@@ -77,6 +81,9 @@ public class YampPlaylistWindow extends JFrame {
 		this.playlist = new ArrayList<YampPlaylistElement>();
 	}
 	
+	/**
+	 * Append file to end of playlist using file chooser dialog
+	 */
 	public void append() {
 		this.fc = new JFileChooser();
 		fc.setDialogTitle("Add to Playlist");
@@ -98,6 +105,10 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	/**
+	 * Append file to end of playlist
+	 * @param file File to add to end of playlist
+	 */
 	public void appendFile(File file) {
 		YampPlaylistElement pelement = new YampPlaylistElement(file);
 		playlist.add(pelement);
@@ -105,6 +116,9 @@ public class YampPlaylistWindow extends JFrame {
 		tablemodel.addRow(rowdata);
 	}
 	
+	/**
+	 * Remove selected file from playlist
+	 */
 	public void remove() {
 		// Get user-selected rows from JTable
 		int[] selectedRows = table.getSelectedRows();
@@ -122,6 +136,9 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	/**
+	 * Clear playlist
+	 */
 	public void clear() {
 		for (int i = playlist.size()-1; i >= 0; i--) {
 			playlist.remove(i);
@@ -130,7 +147,10 @@ public class YampPlaylistWindow extends JFrame {
 			tablemodel.removeRow(i);
 		}
 	}
-
+	
+	/**
+	 * Save playlist
+	 */
 	public void save() {
 		this.fc = new JFileChooser();
 		fc.setDialogTitle("Save Playlist");
@@ -156,7 +176,10 @@ public class YampPlaylistWindow extends JFrame {
 		}
 
 	}
-
+	
+	/**
+	 * Load playlist
+	 */
 	public void load() {
 		this.fc = new JFileChooser();
 		// Open File Chooser dialog for loading a playlist
@@ -202,6 +225,9 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	/**
+	 * Play the previous song in the playlist
+	 */
 	public File previous() {
 		if (mode == REPEATE_PLAYLIST) {
 			currentSongIndex = (currentSongIndex - 1 < 0)? 0 : currentSongIndex - 1;
@@ -212,6 +238,9 @@ public class YampPlaylistWindow extends JFrame {
 		return playlist.get(currentSongIndex).getFile();
 	}
 	
+	/**
+	 * Play the next song in the playlist
+	 */
 	public File next() {
 		if (mode == REPEATE_PLAYLIST) {
 			currentSongIndex = (currentSongIndex + 1) % playlist.size();
@@ -222,6 +251,9 @@ public class YampPlaylistWindow extends JFrame {
 		return playlist.get(currentSongIndex).getFile();
 	}
 	
+	/**
+	 * Move the selected songs upwards in the playlist
+	 */
 	public void moveUp() {
 	    int[] selectedRows = table.getSelectedRows();
 	    for (int row : selectedRows) {
@@ -239,6 +271,9 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	/**
+	 * Move the selected songs downwards in the playlist
+	 */
 	public void moveDown() {
 	    int[] selectedRows = table.getSelectedRows();
 	    for (int i = selectedRows.length-1; i >=0; i--) {
@@ -257,14 +292,25 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	/**
+	 * Set the current song index
+	 * @param index index to set the current song index to
+	 */
 	public void setCurrentSongIndex(int index) {
 		currentSongIndex = index;
 	}
 	
+	/**
+	 * Set play mode
+	 * @param playmode Play mode code
+	 */
 	public void setPlayMode(int playmode) {
 		mode = playmode;
 	}
-		
+	
+	/**
+	 * Print playlist files (for debugging)
+	 */
 	public void debugPrint() {
 		System.out.println("**Playlist debug print**");
 		for (int i = 0; i < playlist.size(); i++) {
@@ -273,6 +319,9 @@ public class YampPlaylistWindow extends JFrame {
 		}
 	}
 	
+	/**
+	 * Initialize Playlist window
+	 */
 	public void initUI() {
 		setTitle("Playlist");
 		setSize(600, 420);
